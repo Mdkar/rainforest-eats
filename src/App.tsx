@@ -1,26 +1,69 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { AppProvider, useAppContext } from './context/AppContext';
+import Header from './components/Header';
+import CacheIndicator from './components/CacheIndicator';
+import BuildingSelection from './components/BuildingSelection';
+import SearchBar from './components/SearchBar';
+import SearchResults from './components/SearchResults';
+import MenuDisplay from './components/MenuDisplay';
+import Footer from './components/Footer';
+import './styles/App.css';
 
-function App() {
+// Main application content
+const AppContent: React.FC = () => {
+  const { 
+    isLoading, 
+    error, 
+    isShowingCachedData, 
+    cacheDate,
+    refreshData
+  } = useAppContext();
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="app">
+      <Header />
+      
+      {isShowingCachedData && cacheDate && (
+        <CacheIndicator cacheDate={cacheDate} />
+      )}
+      
+      <main className="container">
+        {error && (
+          <div className="error">
+            {error}
+            <button 
+              onClick={refreshData}
+              style={{ marginLeft: '1rem' }}
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+        
+        {isLoading ? (
+          <div className="loading">Loading menu data...</div>
+        ) : (
+          <>
+            <BuildingSelection />
+            <SearchBar />
+            <SearchResults />
+            <MenuDisplay />
+          </>
+        )}
+      </main>
+      
+      <Footer />
     </div>
   );
-}
+};
+
+// Root component with context provider
+const App: React.FC = () => {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
+  );
+};
 
 export default App;

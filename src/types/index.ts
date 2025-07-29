@@ -83,6 +83,7 @@ export interface Menu {
 }
 
 export interface DiningLocation {
+  brands: DiningBrand[];
   id: string;
   name: string;
   label: {
@@ -90,13 +91,6 @@ export interface DiningLocation {
   };
   meta: any;
   address: Address;
-  menus?: {
-    id: string;
-    label: {
-      en: string;
-    };
-    state: string;
-  }[];
 }
 
 export interface DiningBrand {
