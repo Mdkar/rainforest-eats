@@ -17,7 +17,7 @@ const MULTIGROUP_ID = 'Ym7By6oy1dTOBE5P880jTamr9022GqCD7BB2y1vOIlgk1B16Y7hzOGjMX
 
 // Hours during which the API is active (11:00 AM - 2:00 PM)
 const API_ACTIVE_START_HOUR = 11;
-const API_ACTIVE_END_HOUR = 16; // 2:00 PM
+const API_ACTIVE_END_HOUR = 14; // 2:00 PM
 
 class ApiService {
   private token: string | null = null;
