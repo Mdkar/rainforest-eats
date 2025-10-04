@@ -97,43 +97,53 @@ const MenuDisplay: React.FC = () => {
                 <h3>{building.name}</h3>
               </div>
               <div className="locations-list">
-                {building.locations.map(location => location.brands.map(brand => (
-                  <div key={brand.id} className="location-section">
-                    <div className="location-header">
-                      <div className="location-name">{location.name}</div>
-                    </div>
-                    
-                    {brand.menus?.map(menuRef => {
-                      const menu = menus[menuRef.id];
-                      if (!menu) return null;
-                      
-                      return (
-                        <div key={menuRef.id} className="menu-groups">
-                          {menu.groups?.map((group: MenuGroup) => (
-                            <div key={group.id} className="menu-group">
-                              <div className="menu-group-name">{group.label.en}</div>
-                              <div className="menu-items">
-                                {group.items.map(item => (
-                                  <MenuItem 
-                                    key={item.id} 
-                                    item={item} 
-                                    locationName={brand.name}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                    
-                    {(!brand.menus || brand.menus.length === 0) && (
-                      <div className="no-results">
-                        No menu data available for this brand.
+                {building.locations.map(location => location.brands.map(brand => {
+                  // Check if this brand has any menu groups with items
+                  const hasMenuGroups = brand.menus?.some(menuRef => {
+                    const menu = menus[menuRef.id];
+                    return menu && menu.groups?.some((group: MenuGroup) => group.items && group.items.length > 0);
+                  });
+                  
+                  // Hide location-section if no menu groups with items
+                  if (!hasMenuGroups) return null;
+                  
+                  return (
+                    <div key={brand.id} className="location-section">
+                      <div className="location-header">
+                        <div className="location-name">{location.name}</div>
                       </div>
-                    )}
-                  </div>
-                )))}
+                      
+                      {brand.menus?.map(menuRef => {
+                        const menu = menus[menuRef.id];
+                        if (!menu) return null;
+                        
+                        return (
+                          <div key={menuRef.id} className="menu-groups">
+                            {menu.groups?.map((group: MenuGroup) => {
+                              // Hide menu-group if no items
+                              if (!group.items || group.items.length === 0) return null;
+                              
+                              return (
+                                <div key={group.id} className="menu-group">
+                                  <div className="menu-group-name">{group.label.en}</div>
+                                  <div className="menu-items">
+                                    {group.items.map(item => (
+                                      <MenuItem 
+                                        key={item.id} 
+                                        item={item} 
+                                        locationName={brand.name}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }))}
               </div>
             </div>
           );
