@@ -27,6 +27,7 @@ body {
 
 .container {
   max-width: var(--max-width);
+  width: 100%;
   margin: 0 auto;
   padding: 0 1rem;
 }
@@ -124,6 +125,8 @@ body {
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   padding: 1rem;
+  width: 100%;
+  max-width: var(--max-width);
 }
 
 .building-selection h2 {
