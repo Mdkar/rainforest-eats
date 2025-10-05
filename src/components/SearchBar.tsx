@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import storageService from '../services/storage';
 
@@ -18,9 +18,7 @@ const SearchBar: React.FC = () => {
   // Debounced search effect
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (query) {
-        searchMenuItems(query);
-      }
+      searchMenuItems(query);
     }, 300);
     
     return () => {
