@@ -80,6 +80,7 @@ export interface Menu {
     modified: string;
     published: string;
   };
+  location_brand?: string;
 }
 
 export interface DiningLocation {

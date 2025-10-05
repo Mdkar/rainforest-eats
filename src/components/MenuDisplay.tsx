@@ -143,6 +143,8 @@ const MenuDisplay: React.FC = () => {
                                       <MenuItem 
                                         key={item.id} 
                                         item={item} 
+                                        buildingId={buildingId}
+                                        brandId={brand.id}
                                         locationName={brand.name}
                                       />
                                     ))}

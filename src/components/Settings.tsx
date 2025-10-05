@@ -24,7 +24,8 @@ const CITY_OPTIONS = [
   { name: 'Kirkland', count: 1 },
   { name: 'Palo Alto', count: 1 },
   { name: 'Irvine', count: 1 },
-  { name: 'Toronto', count: 1 }
+  { name: 'Toronto', count: 1 },
+  { name: 'Richmond Hill', count: 0 },
 ];
 
 interface SettingsProps {

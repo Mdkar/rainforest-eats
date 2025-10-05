@@ -4,7 +4,6 @@ import {
   BuildingDetail,
   Menu,
   CachedMenus,
-  Building
 } from '../types';
 import mockDataService from './mockData';
 
@@ -111,7 +110,6 @@ class ApiService {
   async getBuildingDetail(buildingId: string): Promise<BuildingDetail> {
     if (USE_MOCK_DATA) {
       const detail = mockDataService.getBuildingDetail(buildingId);
-      console.log("hello, this is the detail", detail);
       if (!detail) {
         throw new Error(`Building detail not found for ID: ${buildingId}`);
       }

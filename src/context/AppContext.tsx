@@ -11,8 +11,10 @@ import storageService from '../services/storage';
 
 interface SearchResult {
   item: MenuItem;
+  buildingId: string;
   buildingName: string;
   locationName: string;
+  brandId: string;
   menuName: string;
 }
 
@@ -335,8 +337,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 console.log(`Found match: ${item.label.en} - $${item.price.amount}`);
                 results.push({
                   item,
+                  buildingId,
                   buildingName,
                   locationName,
+                  brandId: brand.id,
                   menuName
                 });
               }

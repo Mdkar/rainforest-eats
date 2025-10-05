@@ -295,6 +295,32 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.menu-item.clickable {
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.menu-item.clickable::after {
+  content: '↗';
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  color: var(--amazon-orange);
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.menu-item.clickable:hover {
+  background-color: #f8f9fa;
+  border-color: var(--amazon-orange);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.menu-item.clickable:hover::after {
+  opacity: 1;
+}
+
 .menu-item-header {
   display: flex;
   justify-content: space-between;

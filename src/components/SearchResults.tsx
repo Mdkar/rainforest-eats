@@ -24,6 +24,8 @@ const SearchResults: React.FC = () => {
             <MenuItem
               key={`${result.item.id}-${index}`}
               item={result.item}
+              buildingId={result.buildingId}
+              brandId={result.brandId}
               locationName={result.locationName}
               buildingName={result.buildingName}
             />

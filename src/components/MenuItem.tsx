@@ -3,12 +3,16 @@ import { MenuItem as MenuItemType } from '../types';
 
 interface MenuItemProps {
   item: MenuItemType;
+  buildingId?: string;
+  brandId?: string;
   locationName?: string;
   buildingName?: string;
 }
 
 const MenuItem: React.FC<MenuItemProps> = ({ 
   item, 
+  buildingId,
+  brandId,
   locationName, 
   buildingName 
 }) => {
@@ -16,9 +20,21 @@ const MenuItem: React.FC<MenuItemProps> = ({
   const formatPrice = (price: number): string => {
     return `$${price.toFixed(2)}`;
   };
+
+  // Handle click to navigate to thrive app
+  const handleClick = () => {
+    if (buildingId && brandId) {
+      const url = `https://thriveapp.io/site/${buildingId}/brand/${brandId}`;
+      window.open(url, '_blank');
+    }
+  };
   
   return (
-    <div className="menu-item">
+    <div 
+      className={`menu-item ${buildingId && brandId ? 'clickable' : ''}`}
+      onClick={handleClick}
+      style={{ cursor: buildingId && brandId ? 'pointer' : 'default' }}
+    >
       <div className="menu-item-header">
         <div className="menu-item-name">{item.label.en}</div>
         <div className="menu-item-price">{formatPrice(item.price.amount)}</div>
