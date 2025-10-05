@@ -119,6 +119,9 @@ export interface BuildingDetail {
 export interface UserPreferences {
   selectedBuildings: string[];
   lastSearch?: string;
+  ignoredBrands?: string[];
+  minPrice?: number;
+  selectedCity: string;
 }
 
 // Cache Types

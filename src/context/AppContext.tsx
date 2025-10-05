@@ -4,7 +4,6 @@ import {
   BuildingDetail, 
   Menu,
   MenuItem,
-  UserPreferences,
   CachedMenus
 } from '../types';
 import apiService from '../services/api';
@@ -28,6 +27,9 @@ interface AppContextType {
   error: string | null;
   searchResults: SearchResult[];
   searchQuery: string;
+  ignoredBrands: string[];
+  minPrice: number;
+  selectedCity: string;
 
   // Flag to indicate if we're showing cached data
   isShowingCachedData: boolean;
@@ -37,11 +39,13 @@ interface AppContextType {
   setSelectedBuildingIds: (ids: string[]) => void;
   toggleBuildingSelection: (id: string) => void;
   searchMenuItems: (query: string) => void;
-  refreshData: () => Promise<void>;
+  fetchBuildings: () => Promise<void>;
+  updateIgnoredBrands: (brands: string[]) => void;
+  updateMinPrice: (minPrice: number) => void;
+  updateSelectedCity: (city: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-const ignoreBrands = new Set(['Barcoded Items', 'SCAN & PAY', 'Barcoder', 'Scan & Pay']);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // State for buildings and user selection
@@ -62,6 +66,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Cache information
   const [isShowingCachedData, setIsShowingCachedData] = useState(false);
   const [cacheDate, setCacheDate] = useState<Date | null>(null);
+  
+  // Ignored brands state
+  const [ignoredBrands, setIgnoredBrands] = useState<string[]>([]);
+  
+  // Minimum price filter state
+  const [minPrice, setMinPrice] = useState<number>(0);
+  
+  // Selected city state
+  const [selectedCity, setSelectedCity] = useState<string>('');
 
   // Fetch buildings data
   const fetchBuildings = async () => {
@@ -69,20 +82,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setError(null);
 
     try {
-      console.log("Fetching buildings...");
+      if (!selectedCity) {
+        return;
+      }
+
       const buildingGroup = await apiService.getBuildings();
       console.log("Building group received:", buildingGroup);
       
-      // Filter for Seattle buildings
-      const seattleBuildings = buildingGroup.groups.filter(
-        building => building.address.city === 'Seattle'
+      // Filter for selected city buildings
+      const cityBuildings = buildingGroup.groups.filter(
+        building => building.address.city === selectedCity
       );
-      console.log("Seattle buildings filtered:", seattleBuildings);
+      console.log(`${selectedCity} buildings filtered:`, cityBuildings);
       
-      setBuildings(seattleBuildings);
+      setBuildings(cityBuildings);
       
       // Fetch details for selected buildings
-      console.log("Selected building IDs before fetch:", selectedBuildingIds)
       await fetchSelectedBuildingDetails(selectedBuildingIds);
 
     } catch (err) {
@@ -95,7 +110,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Fetch details for selected buildings
   const fetchSelectedBuildingDetails = async (buildingIds : string[]) => {
-    console.log("Selected building IDs inside fetch:", buildingIds)
     if (buildingIds.length === 0) return;
     
     console.log("Fetching details for selected buildings:", buildingIds);
@@ -124,7 +138,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         // Collect menu IDs from locations
         detail.locations?.forEach(location => {
           location.brands.forEach(brand => {
-            if (!ignoreBrands.has(brand.name)){
+            if (!ignoredBrands.includes(brand.name)){
               console.log(`Processing brand "${brand.name}" for building "${detail.name}"`);
             
               if (!brand.menus || brand.menus.length === 0) {
@@ -212,12 +226,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     setSelectedBuildingIds(newSelection);
     storageService.saveSelectedBuildings(newSelection);
-    
-    // Fetch details for newly selected buildings
-    const newlySelectedIds = newSelection.filter(
-      id => !Object.keys(buildingDetails).includes(id)
-    );
-    fetchSelectedBuildingDetails(newlySelectedIds);
   };
 
   // Create a reference to track when data is loaded
@@ -225,25 +233,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Load user preferences and cached menus on initial mount
   useEffect(() => {
-    refreshData();
+    console.log("Initial load of user preferences and cached menus");
     
     const userPrefs = storageService.getUserPreferences();
     setSelectedBuildingIds(userPrefs.selectedBuildings);
+    setIgnoredBrands(userPrefs.ignoredBrands || []);
+    setMinPrice(userPrefs.minPrice || 0);
+    setSelectedCity(userPrefs.selectedCity || 'Seattle');
     
     const storedCachedMenus = storageService.getCachedMenus();
     setCachedMenus(storedCachedMenus);
   }, []);
 
   useEffect(() => {
+    fetchBuildings();
+  }, [selectedCity])
 
+  useEffect(() => {
+    console.log("Selected building IDs changed:", selectedBuildingIds);
     const newlySelectedIds = selectedBuildingIds.filter(
       id => !Object.keys(buildingDetails).includes(id)
     );
     fetchSelectedBuildingDetails(newlySelectedIds);
-  }, [selectedBuildingIds])
+  }, [selectedBuildingIds]);
+
+  useEffect(() => {
+    console.log("Ignored brands changed:", ignoredBrands);
+    fetchSelectedBuildingDetails(selectedBuildingIds);
+  }, [ignoredBrands]);
 
   // Effect to check data loading state
   useEffect(() => {
+    console.log("Building details or menus changed:", buildingDetails, menus);
     // If building details and menus exist, mark data as loaded
     if (Object.keys(buildingDetails).length > 0 && Object.keys(menus).length > 0) {
       hasLoadedData.current = true;
@@ -283,6 +304,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       
       // Search through all locations in the building
       buildingDetail.locations.forEach(location => location.brands.forEach(brand => {
+        // Skip ignored brands in search results
+        if (ignoredBrands.includes(brand.name)) return;
+        
         const locationName = brand.name;
         
         // Search through all menus in the location
@@ -302,12 +326,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               const itemName = item.label.en.toLowerCase();
               const itemDescription = item.description?.en?.toLowerCase() || '';
               
-              // Check if the item matches the search query
+              // Check if the item matches the search query and price filter
               if (
-                itemName.includes(normalizedQuery) || 
-                itemDescription.includes(normalizedQuery)
+                (itemName.includes(normalizedQuery) || 
+                itemDescription.includes(normalizedQuery)) &&
+                (minPrice === 0 || item.price.amount >= minPrice)
               ) {
-                console.log(`Found match: ${item.label.en}`);
+                console.log(`Found match: ${item.label.en} - $${item.price.amount}`);
                 results.push({
                   item,
                   buildingName,
@@ -325,11 +350,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSearchResults(results);
   };
 
-  // Refresh all data
-  const refreshData = async () => {
-    setIsLoading(true);
-    await fetchBuildings();
-    setIsLoading(false);
+  // Update ignored brands
+  const updateIgnoredBrands = (brands: string[]) => {
+    setIgnoredBrands(brands);
+  };
+
+  // Update minimum price filter
+  const updateMinPrice = (newMinPrice: number) => {
+    setMinPrice(newMinPrice);
+    storageService.saveMinPrice(newMinPrice);
+  };
+
+  // Update selected city
+  const updateSelectedCity = (city: string) => {
+    // Clear existing data and refresh with new city only if city changes
+    if (city !== selectedCity) {
+      setSelectedCity(city);
+      storageService.saveSelectedCity(city);
+      setBuildings([]);
+      setBuildingDetails({});
+      setMenus({});
+      setSelectedBuildingIds([]);
+      setSearchResults([]);
+      storageService.saveSelectedBuildings([]);
+    }
   };
 
   const value: AppContextType = {
@@ -342,12 +386,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     error,
     searchResults,
     searchQuery,
+    ignoredBrands,
+    minPrice,
+    selectedCity,
     isShowingCachedData,
     cacheDate,
     setSelectedBuildingIds,
     toggleBuildingSelection,
     searchMenuItems,
-    refreshData
+    fetchBuildings,
+    updateIgnoredBrands,
+    updateMinPrice,
+    updateSelectedCity
   };
 
   return (

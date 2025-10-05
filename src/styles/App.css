@@ -67,6 +67,21 @@ body {
   margin-right: 0.5rem;
 }
 
+.settings-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.settings-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 /* Cache Indicator */
 .cache-indicator {
   background-color: var(--warning-orange);
@@ -311,6 +326,152 @@ body {
 .location-icon {
   margin-right: 0.3rem;
   color: var(--amazon-orange);
+}
+
+/* Settings Panel */
+.settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.settings-panel {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--medium-gray);
+  background-color: var(--light-gray);
+  border-radius: 8px 8px 0 0;
+}
+
+.settings-header h2 {
+  margin: 0;
+  color: var(--amazon-dark);
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--dark-gray);
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-button:hover {
+  background-color: var(--medium-gray);
+}
+
+.settings-content {
+  padding: 1.5rem;
+}
+
+.setting-group {
+  margin-bottom: 1.5rem;
+}
+
+.setting-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--amazon-dark);
+}
+
+.setting-description {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--dark-gray);
+  margin-top: 0.25rem;
+  font-weight: normal;
+}
+
+.ignored-brands-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--medium-gray);
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.ignored-brands-input:focus {
+  outline: none;
+  border-color: var(--amazon-blue);
+  box-shadow: 0 0 0 2px rgba(20, 110, 180, 0.2);
+}
+
+.settings-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-top: 1px solid var(--medium-gray);
+  background-color: var(--light-gray);
+  border-radius: 0 0 8px 8px;
+}
+
+.button-group {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.reset-button,
+.cancel-button,
+.save-button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.reset-button {
+  background-color: var(--warning-orange);
+  color: white;
+}
+
+.reset-button:hover {
+  background-color: #b8550a;
+}
+
+.cancel-button {
+  background-color: var(--medium-gray);
+  color: var(--amazon-dark);
+}
+
+.cancel-button:hover {
+  background-color: #ccc;
+}
+
+.save-button {
+  background-color: var(--amazon-blue);
+  color: white;
+}
+
+.save-button:hover {
+  background-color: #0f5a96;
 }
 
 /* Footer */

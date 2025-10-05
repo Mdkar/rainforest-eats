@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppProvider, useAppContext } from './context/AppContext';
 import Header from './components/Header';
 import CacheIndicator from './components/CacheIndicator';
@@ -7,6 +7,7 @@ import SearchBar from './components/SearchBar';
 import SearchResults from './components/SearchResults';
 import MenuDisplay from './components/MenuDisplay';
 import Footer from './components/Footer';
+import Settings from './components/Settings';
 import './styles/App.css';
 
 // Main application content
@@ -16,12 +17,22 @@ const AppContent: React.FC = () => {
     error, 
     isShowingCachedData, 
     cacheDate,
-    refreshData
+    fetchBuildings
   } = useAppContext();
+
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const handleSettingsClick = () => {
+    setIsSettingsOpen(true);
+  };
+
+  const handleSettingsClose = () => {
+    setIsSettingsOpen(false);
+  };
 
   return (
     <div className="app">
-      <Header />
+      <Header onSettingsClick={handleSettingsClick} />
       
       {isShowingCachedData && cacheDate && (
         <CacheIndicator cacheDate={cacheDate} />
@@ -32,7 +43,7 @@ const AppContent: React.FC = () => {
           <div className="error">
             {error}
             <button 
-              onClick={refreshData}
+              onClick={fetchBuildings}
               style={{ marginLeft: '1rem' }}
             >
               Try Again
@@ -53,6 +64,11 @@ const AppContent: React.FC = () => {
       </main>
       
       <Footer />
+      
+      <Settings 
+        isOpen={isSettingsOpen} 
+        onClose={handleSettingsClose} 
+      />
     </div>
   );
 };

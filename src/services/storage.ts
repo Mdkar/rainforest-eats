@@ -23,7 +23,10 @@ interface ChunkMetadata {
 
 // Default preferences
 const DEFAULT_PREFERENCES: UserPreferences = {
-  selectedBuildings: []
+  selectedBuildings: [],
+  ignoredBrands: ['Barcoded Items', 'SCAN & PAY', 'Barcoder', 'Scan & Pay'],
+  minPrice: 0,
+  selectedCity: 'Seattle'
 };
 
 class StorageService {
@@ -193,6 +196,33 @@ class StorageService {
   saveLastSearch(searchQuery: string): void {
     const preferences = this.getUserPreferences();
     preferences.lastSearch = searchQuery;
+    this.saveUserPreferences(preferences);
+  }
+  
+  /**
+   * Save ignored brands list
+   */
+  saveIgnoredBrands(ignoredBrands: string[]): void {
+    const preferences = this.getUserPreferences();
+    preferences.ignoredBrands = ignoredBrands;
+    this.saveUserPreferences(preferences);
+  }
+  
+  /**
+   * Save minimum price filter
+   */
+  saveMinPrice(minPrice: number): void {
+    const preferences = this.getUserPreferences();
+    preferences.minPrice = minPrice;
+    this.saveUserPreferences(preferences);
+  }
+  
+  /**
+   * Save selected city
+   */
+  saveSelectedCity(selectedCity: string): void {
+    const preferences = this.getUserPreferences();
+    preferences.selectedCity = selectedCity;
     this.saveUserPreferences(preferences);
   }
   

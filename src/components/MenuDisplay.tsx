@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import MenuItem from './MenuItem';
-import { Menu, MenuGroup } from '../types';
+import { MenuGroup } from '../types';
 
 const MenuDisplay: React.FC = () => {
   const { 
@@ -9,7 +9,9 @@ const MenuDisplay: React.FC = () => {
     menus,
     selectedBuildingIds,
     searchQuery,
-    isLoading
+    isLoading,
+    ignoredBrands,
+    minPrice
   } = useAppContext();
   
   const [noMenusFound, setNoMenusFound] = useState(false);
@@ -98,10 +100,15 @@ const MenuDisplay: React.FC = () => {
               </div>
               <div className="locations-list">
                 {building.locations.map(location => location.brands.map(brand => {
-                  // Check if this brand has any menu groups with items
+                  // Skip ignored brands
+                  if (ignoredBrands.includes(brand.name)) return null;
+                  
+                  // Check if this brand has any menu groups with items that pass the price filter
                   const hasMenuGroups = brand.menus?.some(menuRef => {
                     const menu = menus[menuRef.id];
-                    return menu && menu.groups?.some((group: MenuGroup) => group.items && group.items.length > 0);
+                    return menu && menu.groups?.some((group: MenuGroup) => 
+                      group.items && group.items.some(item => minPrice === 0 || item.price.amount >= minPrice)
+                    );
                   });
                   
                   // Hide location-section if no menu groups with items
@@ -120,14 +127,19 @@ const MenuDisplay: React.FC = () => {
                         return (
                           <div key={menuRef.id} className="menu-groups">
                             {menu.groups?.map((group: MenuGroup) => {
-                              // Hide menu-group if no items
+                              // Hide menu-group if menu group name is in ignored brands
+                              if (ignoredBrands.includes(group.label.en)) return null;
+                              // Hide menu-group if no items or no items pass the price filter
                               if (!group.items || group.items.length === 0) return null;
+                              
+                              const filteredItems = group.items.filter(item => minPrice === 0 || item.price.amount >= minPrice);
+                              if (filteredItems.length === 0) return null;
                               
                               return (
                                 <div key={group.id} className="menu-group">
                                   <div className="menu-group-name">{group.label.en}</div>
                                   <div className="menu-items">
-                                    {group.items.map(item => (
+                                    {filteredItems.map(item => (
                                       <MenuItem 
                                         key={item.id} 
                                         item={item} 
