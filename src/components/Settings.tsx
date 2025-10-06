@@ -34,10 +34,11 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
-  const { updateIgnoredBrands, updateMinPrice, updateSelectedCity } = useAppContext();
+  const { updateIgnoredBrands, updateMinPrice, updateSelectedCity, debugMode, setDebugMode } = useAppContext();
   const [ignoredBrandsText, setIgnoredBrandsText] = useState('');
   const [minPriceText, setMinPriceText] = useState('');
   const [selectedCityValue, setSelectedCityValue] = useState('');
+  const [debugModeValue, setDebugModeValue] = useState(debugMode);
 
   useEffect(() => {
     if (isOpen) {
@@ -48,6 +49,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
       setIgnoredBrandsText(ignoredBrands.join(', '));
       setMinPriceText((preferences.minPrice || 0).toString());
       setSelectedCityValue(selectedCity);
+      setDebugModeValue(preferences.debugMode ?? false);
     }
   }, [isOpen]);
 
@@ -68,9 +70,9 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
     storageService.saveMinPrice(minPriceValue);
     updateMinPrice(minPriceValue);
     
-    updateSelectedCity(selectedCityValue);
-    
-    onClose();
+  updateSelectedCity(selectedCityValue);
+  setDebugMode(debugModeValue);
+  onClose();
   };
 
   const handleReset = () => {
@@ -145,6 +147,21 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
               onChange={(e) => setMinPriceText(e.target.value)}
               placeholder="0.00"
               className="min-price-input"
+            />
+          </div>
+          <div className="setting-group">
+            <label htmlFor="debug-mode">
+              <strong>Debug Mode</strong>
+              <span className="setting-description">
+                Enable debug mode to show extra console logs and force API active status.
+              </span>
+            </label>
+            <input
+              id="debug-mode"
+              type="checkbox"
+              checked={debugModeValue}
+              onChange={e => setDebugModeValue(e.target.checked)}
+              className="debug-mode-checkbox"
             />
           </div>
         </div>

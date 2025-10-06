@@ -123,6 +123,7 @@ export interface UserPreferences {
   ignoredBrands?: string[];
   minPrice?: number;
   selectedCity: string;
+  debugMode?: boolean;
 }
 
 // Cache Types

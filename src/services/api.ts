@@ -6,6 +6,7 @@ import {
   CachedMenus,
 } from '../types';
 import mockDataService from './mockData';
+import storageService from './storage';
 
 // Flag to control whether to use mock data or real API
 export const USE_MOCK_DATA = false;
@@ -14,8 +15,8 @@ const API_BASE_URL = 'https://api.compassdigital.org';
 const REALM = 'Kq8m4B8GNRCgjlRL9A3rsYj0YBNGP3SLOKgg';
 const MULTIGROUP_ID = 'Ym7By6oy1dTOBE5P880jTamr9022GqCD7BB2y1vOIlgk1B16Y7hzOGjMXNMoh1oQRojae9T8JqBXJ8llt9d';
 
-// Hours during which the API is active (11:00 AM - 2:00 PM)
-const API_ACTIVE_START_HOUR = 11;
+// Hours during which the API is active (11:00 AM - 2:00 PM), sometimes midnight?
+const API_ACTIVE_START_HOUR = 0;
 const API_ACTIVE_END_HOUR = 14; // 2:00 PM
 
 class ApiService {
@@ -26,13 +27,24 @@ class ApiService {
    * Check if the API is likely to be active based on current time
    */
   isApiActive(): boolean {
-    // For mock data, we'll say it's always active
+    // Debug mode always returns true
+    const prefs = storageService.getUserPreferences();
+    if (prefs.debugMode) {
+      return true;
+    }
     if (USE_MOCK_DATA) {
       return true;
-    }    
+    }
     const now = new Date();
     const hour = now.getHours();
     return hour >= API_ACTIVE_START_HOUR && hour < API_ACTIVE_END_HOUR;
+  }
+
+  debugLog(...args: any[]) {
+    const prefs = storageService.getUserPreferences();
+    if (prefs.debugMode) {
+      console.log(...args);
+    }
   }
   
   /**

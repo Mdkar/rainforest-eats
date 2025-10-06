@@ -26,10 +26,19 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   selectedBuildings: [],
   ignoredBrands: ['Barcoded Items', 'SCAN & PAY', 'Barcoder', 'Scan & Pay'],
   minPrice: 0,
-  selectedCity: 'Seattle'
+  selectedCity: 'Seattle',
+  debugMode: false
 };
 
 class StorageService {
+  /**
+   * Save debug mode
+   */
+  saveDebugMode(debugMode: boolean): void {
+    const preferences = this.getUserPreferences();
+    preferences.debugMode = debugMode;
+    this.saveUserPreferences(preferences);
+  }
   /**
    * Clear all cached menu chunks and metadata
    */

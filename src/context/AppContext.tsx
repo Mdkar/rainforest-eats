@@ -19,6 +19,8 @@ interface SearchResult {
 }
 
 interface AppContextType {
+  debugMode: boolean;
+  setDebugMode: (debug: boolean) => void;
   // Data
   buildings: Building[];
   selectedBuildingIds: string[];
@@ -51,6 +53,16 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // State for buildings and user selection
+    // Debug mode state
+    const [debugMode, setDebugModeState] = useState<boolean>(() => {
+      const prefs = storageService.getUserPreferences();
+      return prefs.debugMode ?? false;
+    });
+
+    const setDebugMode = (debug: boolean) => {
+      setDebugModeState(debug);
+      storageService.saveDebugMode(debug);
+    };
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [selectedBuildingIds, setSelectedBuildingIds] = useState<string[]>([]);
   const [buildingDetails, setBuildingDetails] = useState<Record<string, BuildingDetail>>({});
@@ -89,13 +101,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       const buildingGroup = await apiService.getBuildings();
-      console.log("Building group received:", buildingGroup);
+      apiService.debugLog("Building group received:", buildingGroup);
       
       // Filter for selected city buildings
       const cityBuildings = buildingGroup.groups.filter(
         building => building.address.city === selectedCity
       );
-      console.log(`${selectedCity} buildings filtered:`, cityBuildings);
+      apiService.debugLog(`${selectedCity} buildings filtered:`, cityBuildings);
       
       setBuildings(cityBuildings);
       
@@ -113,8 +125,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Fetch details for selected buildings
   const fetchSelectedBuildingDetails = async (buildingIds : string[]) => {
     if (buildingIds.length === 0) return;
-    
-    console.log("Fetching details for selected buildings:", buildingIds);
+
+    apiService.debugLog("Fetching details for selected buildings:", buildingIds);
 
     try {
       const detailsPromises = buildingIds.map(async (buildingId) => {
@@ -141,14 +153,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         detail.locations?.forEach(location => {
           location.brands.forEach(brand => {
             if (!ignoredBrands.includes(brand.name)){
-              console.log(`Processing brand "${brand.name}" for building "${detail.name}"`);
+              apiService.debugLog(`Processing brand "${brand.name}" for building "${detail.name}"`);
             
               if (!brand.menus || brand.menus.length === 0) {
-                console.log(`No menus found for location ${location.name}`);
+                apiService.debugLog(`No menus found for location ${location.name}`);
               } else {
                 brand.menus.forEach(menu => {
                   if (menu.id) {
-                    console.log(`Found menu ID: ${menu.id} - ${menu.label.en}`);
+                    apiService.debugLog(`Found menu ID: ${menu.id} - ${menu.label.en}`);
                     menusToFetch.push(menu.id);
                   }
                 });
@@ -159,11 +171,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         });
       });
 
-      console.log("Menu IDs to fetch:", menusToFetch);
+      apiService.debugLog("Menu IDs to fetch:", menusToFetch);
 
       // Update building details
       setBuildingDetails(prev => {
-        console.log("Setting building details:", newBuildingDetails);
+        apiService.debugLog("Setting building details:", newBuildingDetails);
         return { ...prev, ...newBuildingDetails };
       });
       
@@ -235,7 +247,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Load user preferences and cached menus on initial mount
   useEffect(() => {
-    console.log("Initial load of user preferences and cached menus");
+    apiService.debugLog("Initial load of user preferences and cached menus");
     
     const userPrefs = storageService.getUserPreferences();
     setSelectedBuildingIds(userPrefs.selectedBuildings);
@@ -252,7 +264,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [selectedCity])
 
   useEffect(() => {
-    console.log("Selected building IDs changed:", selectedBuildingIds);
+    apiService.debugLog("Selected building IDs changed:", selectedBuildingIds);
     const newlySelectedIds = selectedBuildingIds.filter(
       id => !Object.keys(buildingDetails).includes(id)
     );
@@ -260,13 +272,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [selectedBuildingIds]);
 
   useEffect(() => {
-    console.log("Ignored brands changed:", ignoredBrands);
+    apiService.debugLog("Ignored brands changed:", ignoredBrands);
     fetchSelectedBuildingDetails(selectedBuildingIds);
   }, [ignoredBrands]);
 
   // Effect to check data loading state
   useEffect(() => {
-    console.log("Building details or menus changed:", buildingDetails, menus);
+    apiService.debugLog("Building details or menus changed:", buildingDetails, menus);
     // If building details and menus exist, mark data as loaded
     if (Object.keys(buildingDetails).length > 0 && Object.keys(menus).length > 0) {
       hasLoadedData.current = true;
@@ -289,16 +301,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const results: SearchResult[] = [];
 
     // Log debugging info to help identify the issue
-    console.log('Searching for:', normalizedQuery);
-    console.log('Selected building IDs:', selectedBuildingIds);
-    console.log('Building details:', buildingDetails);
-    console.log('Available menus:', menus);
-    
+    apiService.debugLog('Searching for:', normalizedQuery);
+    apiService.debugLog('Selected building IDs:', selectedBuildingIds);
+    apiService.debugLog('Building details:', buildingDetails);
+    apiService.debugLog('Available menus:', menus);
+
     // Only search in selected buildings
     selectedBuildingIds.forEach(buildingId => {
       const buildingDetail = buildingDetails[buildingId];
       if (!buildingDetail) {
-        console.log(`No details found for building ${buildingId}`);
+        apiService.debugLog(`No details found for building ${buildingId}`);
         return;
       }
 
@@ -315,7 +327,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         brand.menus?.forEach(menuRef => {
           const menu = menus[menuRef.id];
           if (!menu) {
-            console.log(`No menu found for ID ${menuRef.id}`);
+            apiService.debugLog(`No menu found for ID ${menuRef.id}`);
             return;
           }
           
@@ -334,7 +346,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 itemDescription.includes(normalizedQuery)) &&
                 (minPrice === 0 || item.price.amount >= minPrice)
               ) {
-                console.log(`Found match: ${item.label.en} - $${item.price.amount}`);
+                apiService.debugLog(`Found match: ${item.label.en} - $${item.price.amount}`);
                 results.push({
                   item,
                   buildingId,
@@ -350,7 +362,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }));
     });
 
-    console.log(`Found ${results.length} results for "${query}"`);
+    apiService.debugLog(`Found ${results.length} results for "${query}"`);
     setSearchResults(results);
   };
 
@@ -401,7 +413,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     fetchBuildings,
     updateIgnoredBrands,
     updateMinPrice,
-    updateSelectedCity
+    updateSelectedCity,
+    debugMode,
+    setDebugMode
   };
 
   return (
