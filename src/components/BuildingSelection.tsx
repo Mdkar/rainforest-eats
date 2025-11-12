@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { Building } from '../types';
 
@@ -9,14 +9,20 @@ const BuildingSelection: React.FC = () => {
     toggleBuildingSelection 
   } = useAppContext();
   
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  
   if (buildings.length === 0) {
     return null;
   }
 
   return (
     <div className="building-selection">
-      <h2>Select Buildings</h2>
-      <div className="building-options">
+      <h2 onClick={() => setIsCollapsed(!isCollapsed)}>
+        <span className="building-toggle-icon">{isCollapsed ? '⊕' : '⊖'}</span>
+        Select Buildings
+      </h2>
+      {!isCollapsed && (
+        <div className="building-options">
         {buildings.map((building: Building) => (
           <label 
             key={building.id} 
@@ -30,7 +36,8 @@ const BuildingSelection: React.FC = () => {
             {building.name}
           </label>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

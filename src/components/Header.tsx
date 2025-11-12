@@ -15,9 +15,10 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick }) => {
         <button 
           className="settings-button"
           onClick={onSettingsClick}
-          title="Settings"
+          title="Location and Settings"
         >
-          ⚙️
+          <span className="settings-text">Location and Settings</span>
+          <span className="settings-icon">⚙️</span>
         </button>
       </div>
     </header>

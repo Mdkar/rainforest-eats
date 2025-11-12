@@ -15,6 +15,32 @@ const MenuDisplay: React.FC = () => {
   } = useAppContext();
   
   const [noMenusFound, setNoMenusFound] = useState(false);
+  const [collapsedLocations, setCollapsedLocations] = useState<Set<string>>(new Set());
+  const [collapsedMenuGroups, setCollapsedMenuGroups] = useState<Set<string>>(new Set());
+  
+  const toggleLocation = (locationKey: string) => {
+    setCollapsedLocations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(locationKey)) {
+        newSet.delete(locationKey);
+      } else {
+        newSet.add(locationKey);
+      }
+      return newSet;
+    });
+  };
+  
+  const toggleMenuGroup = (groupKey: string) => {
+    setCollapsedMenuGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupKey)) {
+        newSet.delete(groupKey);
+      } else {
+        newSet.add(groupKey);
+      }
+      return newSet;
+    });
+  };
   
   // Check if we have menus loaded after a certain time
   useEffect(() => {
@@ -114,13 +140,19 @@ const MenuDisplay: React.FC = () => {
                   // Hide location-section if no menu groups with items
                   if (!hasMenuGroups) return null;
                   
+                  const locationKey = `${buildingId}-${brand.id}`;
+                  const isLocationCollapsed = collapsedLocations.has(locationKey);
+                  
                   return (
                     <div key={brand.id} className="location-section">
-                      <div className="location-header">
-                        <div className="location-name">{location.name}</div>
+                      <div className="location-header" onClick={() => toggleLocation(locationKey)}>
+                        <div className="location-name">
+                          <span className={`collapse-icon ${isLocationCollapsed ? 'collapsed' : ''}`}>▼</span>
+                          {location.name}
+                        </div>
                       </div>
                       
-                      {brand.menus?.map(menuRef => {
+                      {!isLocationCollapsed && brand.menus?.map(menuRef => {
                         const menu = menus[menuRef.id];
                         if (!menu) return null;
                         
@@ -135,20 +167,28 @@ const MenuDisplay: React.FC = () => {
                               const filteredItems = group.items.filter(item => minPrice === 0 || item.price.amount >= minPrice);
                               if (filteredItems.length === 0) return null;
                               
+                              const groupKey = `${buildingId}-${brand.id}-${group.id}`;
+                              const isGroupCollapsed = collapsedMenuGroups.has(groupKey);
+                              
                               return (
                                 <div key={group.id} className="menu-group">
-                                  <div className="menu-group-name">{group.label.en}</div>
-                                  <div className="menu-items">
-                                    {filteredItems.map(item => (
-                                      <MenuItem 
-                                        key={item.id} 
-                                        item={item} 
-                                        buildingId={buildingId}
-                                        brandId={brand.id}
-                                        locationName={brand.name}
-                                      />
-                                    ))}
+                                  <div className="menu-group-name" onClick={() => toggleMenuGroup(groupKey)}>
+                                    <span className={`collapse-icon ${isGroupCollapsed ? 'collapsed' : ''}`}>▼</span>
+                                    {group.label.en}
                                   </div>
+                                  {!isGroupCollapsed && (
+                                    <div className="menu-items">
+                                      {filteredItems.map(item => (
+                                        <MenuItem 
+                                          key={item.id} 
+                                          item={item} 
+                                          buildingId={buildingId}
+                                          brandId={brand.id}
+                                          locationName={brand.name}
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
