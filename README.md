@@ -1,6 +1,57 @@
-# Getting Started with Create React App
+# Rainforest Eats 🍌
+https://rainforesteats.mihirdhamankar.com
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React-based web application for browsing and searching dining menus across multiple Amazon campus buildings. Designed to help users quickly find food options, compare prices, and discover what's available at various dining locations.
+
+## What It Does
+
+Rainforest Eats aggregates menu data from multiple corporate dining locations, allowing users to:
+- Browse menus from different buildings in one place
+- Search for specific food items across all locations
+- Filter menu items by price
+- Customize their experience by hiding unwanted brands or menu categories
+- View detailed information about each menu item including prices and locations
+
+## Features
+
+### Building Selection
+- Select multiple buildings to view their dining options simultaneously
+- Collapsible interface (collapsed by default) to save screen space
+- Visual toggle with ⊕/⊖ icons for expand/collapse
+
+### Smart Search
+- Real-time search across all menu items
+- Search results show item name, description, price, and location
+- Clickable items for more details
+
+### Menu Display
+- Organized by building, location, and menu category
+- Collapsible sections for locations and menu groups (▼ icons)
+- Grid layout for easy browsing
+- Hover effects for better interactivity
+
+### Customizable Settings
+- **Ignored Brands**: Hide specific brands or menu categories you don't want to see
+- **Minimum Price Filter**: Set a minimum price threshold to filter out items below a certain price
+- Settings persist across sessions using localStorage
+
+### Responsive Design
+- Mobile-friendly interface
+- Adaptive button labels (e.g., "Location and Settings" on wider screens, icon-only on mobile)
+- Grid layouts adjust to screen size
+
+### Performance
+- Caching system for menu data
+- Loading states and error handling
+- Efficient state management with React Context
+
+## Tech Stack
+
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app) and uses:
+- React with TypeScript
+- React Context API for state management
+- CSS custom properties for theming
+- localStorage for data persistence
 
 ## Available Scripts
 
