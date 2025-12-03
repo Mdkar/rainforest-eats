@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { Building } from '../types';
+import MapView from './MapView';
+import ListView from './ListView';
+
+type ViewType = 'map' | 'list';
 
 const BuildingSelection: React.FC = () => {
-  const { 
-    buildings, 
-    selectedBuildingIds, 
-    toggleBuildingSelection 
-  } = useAppContext();
+  const { buildings } = useAppContext();
   
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [activeView, setActiveView] = useState<ViewType>('map');
   
   if (buildings.length === 0) {
     return null;
@@ -22,20 +22,35 @@ const BuildingSelection: React.FC = () => {
         Select Buildings
       </h2>
       {!isCollapsed && (
-        <div className="building-options">
-        {buildings.map((building: Building) => (
-          <label 
-            key={building.id} 
-            className="building-checkbox"
-          >
-            <input 
-              type="checkbox"
-              checked={selectedBuildingIds.includes(building.id)}
-              onChange={() => toggleBuildingSelection(building.id)}
-            />
-            {building.name}
-          </label>
-        ))}
+        <div className="building-selection-content">
+          {/* Tab Controls */}
+          <div className="tab-controls" role="tablist">
+            <button
+              role="tab"
+              aria-selected={activeView === 'map'}
+              aria-controls="map-view-panel"
+              id="map-tab"
+              className={`tab-button ${activeView === 'map' ? 'active' : ''}`}
+              onClick={() => setActiveView('map')}
+            >
+              Map View
+            </button>
+            <button
+              role="tab"
+              aria-selected={activeView === 'list'}
+              aria-controls="list-view-panel"
+              id="list-tab"
+              className={`tab-button ${activeView === 'list' ? 'active' : ''}`}
+              onClick={() => setActiveView('list')}
+            >
+              List View
+            </button>
+          </div>
+
+          {/* View Content */}
+          <div className="tab-content">
+            {activeView === 'map' ? <MapView /> : <ListView />}
+          </div>
         </div>
       )}
     </div>
