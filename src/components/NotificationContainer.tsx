@@ -18,7 +18,10 @@ const NotificationContainer: React.FC = () => {
         >
           <NotificationPopup
             isVisible={true}
-            onDismiss={() => removeNotification(notification.id)}
+            onDismiss={() => {
+              notification.onDismiss?.();
+              removeNotification(notification.id);
+            }}
             title={notification.title}
           >
             {notification.content}

@@ -23,6 +23,7 @@ export interface Notification {
   title: string;
   content: React.ReactNode;
   duration?: number; // Auto-dismiss after X milliseconds (optional)
+  onDismiss?: () => void; // Optional callback when notification is dismissed
 }
 
 interface NotificationContextType {

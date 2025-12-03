@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import changelogData from '../data/changelog.json';
@@ -6,7 +6,8 @@ import changelogData from '../data/changelog.json';
 const STORAGE_KEY = 'lastViewedChangelogDate';
 
 const ChangelogNotification: React.FC = () => {
-  const { addNotification } = useNotifications();
+  const { addNotification, removeNotification } = useNotifications();
+  const notificationIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Get the latest changelog entry
@@ -17,7 +18,7 @@ const ChangelogNotification: React.FC = () => {
 
     // Show notification if user hasn't seen this changelog entry
     if (!lastViewedDate || lastViewedDate !== latest.date) {
-      addNotification({
+      const notificationId = addNotification({
         title: "What's New",
         content: (
           <div className="changelog-notification">
@@ -38,14 +39,23 @@ const ChangelogNotification: React.FC = () => {
             </Link>
           </div>
         ),
+        onDismiss: () => {
+          // Mark as read when dismissed via X button
+          localStorage.setItem(STORAGE_KEY, latest.date);
+        },
       });
 
-      // Mark as viewed when component unmounts
+      notificationIdRef.current = notificationId;
+
+      // Cleanup: remove notification if component unmounts
       return () => {
-        localStorage.setItem(STORAGE_KEY, latest.date);
+        if (notificationIdRef.current) {
+          removeNotification(notificationIdRef.current);
+          notificationIdRef.current = null;
+        }
       };
     }
-  }, [addNotification]);
+  }, [addNotification, removeNotification]);
 
   return null;
 };
