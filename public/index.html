@@ -9,6 +9,21 @@
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>Rainforest Eats</title>
+    
+    <!-- Single Page Apps for GitHub Pages -->
+    <script type="text/javascript">
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+    </script>
+    
     <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "06ae920f424c4698bd1394f63e347dc4"}'></script><!-- End Cloudflare Web Analytics -->
   </head>
   <body>

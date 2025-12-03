@@ -1,0 +1,61 @@
+[
+  {
+    "date": "2025-12-03",
+    "changes": [
+      "Added map view to view and select nearby buildings",
+      "Added About page and changelog + notification popups",
+      "Improved logo"
+    ]
+  },
+  {
+    "date": "2025-11-12",
+    "changes": [
+      "Updated README documentation",
+      "Added collapsible sections to improve UI organization",
+      "Integrated Cloudflare Web Analytics"
+    ]
+  },
+  {
+    "date": "2025-10-06",
+    "changes": [
+      "Updated application logos",
+      "Added deployment setup for GitHub Pages",
+      "Added debug mode setting for troubleshooting"
+    ]
+  },
+  {
+    "date": "2025-10-05",
+    "changes": [
+      "Adjusted link icon styling",
+      "Fixed issue with clearing search bar",
+      "Added links to Thrive App",
+      "Added ignoreBrands, minPrice, and selectedCity settings",
+      "Improved state management and updates"
+    ]
+  },
+  {
+    "date": "2025-10-04",
+    "changes": [
+      "Hide empty location sections and menu groups",
+      "Fixed building selection width issue"
+    ]
+  },
+  {
+    "date": "2025-10-03",
+    "changes": [
+      "Implemented chunked caching for better performance"
+    ]
+  },
+  {
+    "date": "2025-07-29",
+    "changes": [
+      "Implemented basic functionality for menu browsing and search"
+    ]
+  },
+  {
+    "date": "2025-06-12",
+    "changes": [
+      "Initialized project"
+    ]
+  }
+]
