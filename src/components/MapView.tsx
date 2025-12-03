@@ -7,6 +7,7 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import { useAppContext } from '../context/AppContext';
 import { useNotifications } from '../context/NotificationContext';
 import { calculateDistance, calculateMapCenter } from '../utils/mapUtils';
+import apiService from '../services/api';
 
 // Fix Leaflet default marker icon issue with webpack
 let DefaultIcon = L.icon({
@@ -275,7 +276,7 @@ const MapView: React.FC = () => {
                     
                     // Auto-hide tooltip after 2 seconds
                     tooltipTimeoutRef.current = setTimeout(() => {
-                      console.log('Hiding tooltip for', building.id);
+                      apiService.debugLog('Hiding tooltip for', building.id);
                       setOpenTooltipId(null);
                       tooltipTimeoutRef.current = null;
                     }, 2000);
