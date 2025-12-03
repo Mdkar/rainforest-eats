@@ -210,6 +210,10 @@ body {
   margin-right: 0.5rem;
 }
 
+.building-checkbox.non-amazon {
+  color: #9ca3af;
+}
+
 /* Tab Controls */
 .building-selection-content {
   display: flex;

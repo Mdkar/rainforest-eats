@@ -15,19 +15,23 @@ const ListView: React.FC = () => {
 
   return (
     <div className="building-options">
-      {buildings.map((building: Building) => (
-        <label 
-          key={building.id} 
-          className="building-checkbox"
-        >
-          <input 
-            type="checkbox"
-            checked={selectedBuildingIds.includes(building.id)}
-            onChange={() => toggleBuildingSelection(building.id)}
-          />
-          {building.name}
-        </label>
-      ))}
+      {buildings.map((building: Building) => {
+        const isAmazon = building.name.toLowerCase().includes('amazon');
+        
+        return (
+          <label 
+            key={building.id} 
+            className={`building-checkbox ${!isAmazon ? 'non-amazon' : ''}`}
+          >
+            <input 
+              type="checkbox"
+              checked={selectedBuildingIds.includes(building.id)}
+              onChange={() => toggleBuildingSelection(building.id)}
+            />
+            {building.name}
+          </label>
+        );
+      })}
     </div>
   );
 };
