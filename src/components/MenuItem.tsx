@@ -9,12 +9,12 @@ interface MenuItemProps {
   buildingName?: string;
 }
 
-const MenuItem: React.FC<MenuItemProps> = ({ 
-  item, 
+const MenuItem: React.FC<MenuItemProps> = ({
+  item,
   buildingId,
   brandId,
-  locationName, 
-  buildingName 
+  locationName,
+  buildingName
 }) => {
   // Format price to always show 2 decimal places
   const formatPrice = (price: number): string => {
@@ -28,28 +28,28 @@ const MenuItem: React.FC<MenuItemProps> = ({
       window.open(url, '_blank');
     }
   };
-  
+
   return (
-    <div 
+    <div
       className={`menu-item ${buildingId && brandId ? 'clickable' : ''}`}
       onClick={handleClick}
       style={{ cursor: buildingId && brandId ? 'pointer' : 'default' }}
     >
       <div className="menu-item-header">
         <div className="menu-item-name">{item.label?.en}</div>
-        <div className="menu-item-price">{formatPrice(item.price?.amount)}</div>
+        <div className="menu-item-price">{item.price?.amount == null ? "Unknown" : formatPrice(item.price.amount)}</div>
       </div>
-      
+
       {item.description?.en && (
         <div className="menu-item-description">
           {item.description.en}
         </div>
       )}
-      
+
       {(locationName || buildingName) && (
         <div className="menu-item-location">
           <span className="location-icon">📍</span>
-          {locationName && buildingName 
+          {locationName && buildingName
             ? `${locationName} (${buildingName})`
             : locationName || buildingName
           }
