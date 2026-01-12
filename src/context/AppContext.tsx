@@ -160,7 +160,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               } else {
                 brand.menus.forEach(menu => {
                   if (menu.id) {
-                    apiService.debugLog(`Found menu ID: ${menu.id} - ${menu.label.en}`);
+                    apiService.debugLog(`Found menu ID: ${menu.id} - ${menu.label?.en}`);
                     menusToFetch.push(menu.id);
                   }
                 });
@@ -331,13 +331,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             return;
           }
           
-          const menuName = menu.label.en;
+          const menuName = menu.label?.en;
           
           // Search through all menu groups
           menu.groups?.forEach(group => {
             // Search through all items in the group
             group.items?.forEach(item => {
-              const itemName = item.label.en.toLowerCase();
+              const itemName = item.label?.en.toLowerCase();
               const itemDescription = item.description?.en?.toLowerCase() || '';
               
               // Check if the item matches the search query and price filter
@@ -346,7 +346,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 itemDescription.includes(normalizedQuery)) &&
                 (minPrice === 0 || item.price.amount >= minPrice)
               ) {
-                apiService.debugLog(`Found match: ${item.label.en} - $${item.price.amount}`);
+                apiService.debugLog(`Found match: ${item.label?.en} - $${item.price?.amount}`);
                 results.push({
                   item,
                   buildingId,

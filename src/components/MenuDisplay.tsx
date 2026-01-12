@@ -174,7 +174,7 @@ const MenuDisplay: React.FC = () => {
                                 <div key={group.id} className="menu-group">
                                   <div className="menu-group-name" onClick={() => toggleMenuGroup(groupKey)}>
                                     <span className={`collapse-icon ${isGroupCollapsed ? 'collapsed' : ''}`}>▼</span>
-                                    {group.label.en}
+                                    {group.label?.en}
                                   </div>
                                   {!isGroupCollapsed && (
                                     <div className="menu-items">

@@ -36,8 +36,8 @@ const MenuItem: React.FC<MenuItemProps> = ({
       style={{ cursor: buildingId && brandId ? 'pointer' : 'default' }}
     >
       <div className="menu-item-header">
-        <div className="menu-item-name">{item.label.en}</div>
-        <div className="menu-item-price">{formatPrice(item.price.amount)}</div>
+        <div className="menu-item-name">{item.label?.en}</div>
+        <div className="menu-item-price">{formatPrice(item.price?.amount)}</div>
       </div>
       
       {item.description?.en && (
