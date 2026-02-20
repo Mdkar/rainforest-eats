@@ -1,5 +1,14 @@
 [  
   {
+    "date": "2026-02-20",
+    "changes": [
+      "Made building headers sticky when scrolling",
+      "Added skip button to quickly navigate between buildings",
+      "Improved location names display",
+      "Added ignore brand button for easier filtering (edit Settings if you want to see the brand again)"
+    ]
+  },
+  {
     "date": "2026-01-12",
     "changes": [
       "Bug fix for exclusion filter"
