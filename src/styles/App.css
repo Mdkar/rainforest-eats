@@ -29,7 +29,6 @@ body {
   max-width: var(--max-width);
   width: 100%;
   margin: 0 auto;
-  padding: 0 1rem;
 }
 
 .app {
@@ -128,7 +127,7 @@ body {
 
 /* Search Bar */
 .search-container {
-  margin: 1.5rem 0;
+  margin: 1.5rem 0.5rem;
   position: relative;
 }
 
@@ -369,7 +368,7 @@ body {
 
 /* Search Results */
 .search-results {
-  margin: 1.5rem 0;
+  margin: 1.5rem 1rem;
 }
 
 .search-results h2 {
@@ -400,6 +399,7 @@ body {
 .menu-display h2 {
   margin-bottom: 1rem;
   font-size: 1.2rem;
+  margin: 1rem 0.5rem;
 }
 
 .buildings-list {
@@ -412,13 +412,17 @@ body {
   background-color: white;
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .building-header {
   background-color: var(--amazon-dark);
   color: white;
   padding: 0.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .locations-list {
