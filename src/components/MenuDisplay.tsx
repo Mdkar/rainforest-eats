@@ -132,9 +132,12 @@ const MenuDisplay: React.FC = () => {
                   // Check if this brand has any menu groups with items that pass the price filter
                   const hasMenuGroups = brand.menus?.some(menuRef => {
                     const menu = menus[menuRef.id];
-                    return menu && menu.groups?.some((group: MenuGroup) => 
-                      group.items && group.items.some(item => minPrice === 0 || item.price.amount >= minPrice)
-                    );
+                    return menu && menu.groups?.some((group: MenuGroup) => {
+                      // Skip groups that are in ignored brands
+                      if (group.label == null || ignoredBrands.includes(group.label?.en)) return false;
+                      // Check if group has items that pass the price filter
+                      return group.items && group.items.some(item => minPrice === 0 || item.price.amount >= minPrice);
+                    });
                   });
                   
                   // Hide location-section if no menu groups with items
@@ -160,7 +163,7 @@ const MenuDisplay: React.FC = () => {
                           <div key={menuRef.id} className="menu-groups">
                             {menu.groups?.map((group: MenuGroup) => {
                               // Hide menu-group if menu group name is in ignored brands
-                              if (ignoredBrands.includes(group.label?.en)) return null;
+                              if ((group.label == null || ignoredBrands.includes(group.label?.en))) return null;
                               // Hide menu-group if no items or no items pass the price filter
                               if (!group.items || group.items.length === 0) return null;
                               
