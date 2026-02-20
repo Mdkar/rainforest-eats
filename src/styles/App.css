@@ -423,6 +423,30 @@ body {
   top: 0;
   z-index: 10;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.skip-button {
+  background: none;
+  color: var(--amazon-orange);
+  border: none;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  font-size: 1.5rem;
+  transition: color 0.2s, transform 0.1s;
+  line-height: 1;
+  transform: rotate(-90deg);
+}
+
+.skip-button:hover {
+  color: var(--amazon-highlight);
+  transform: rotate(-90deg) scale(1.1);
+}
+
+.skip-button:active {
+  transform: rotate(-90deg) scale(0.95);
 }
 
 .locations-list {

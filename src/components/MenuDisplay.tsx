@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import MenuItem from './MenuItem';
 import { MenuGroup } from '../types';
@@ -18,6 +18,7 @@ const MenuDisplay: React.FC = () => {
   const [noMenusFound, setNoMenusFound] = useState(false);
   const [collapsedLocations, setCollapsedLocations] = useState<Set<string>>(new Set());
   const [collapsedMenuGroups, setCollapsedMenuGroups] = useState<Set<string>>(new Set());
+  const buildingRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   
   const toggleLocation = (locationKey: string) => {
     setCollapsedLocations(prev => {
@@ -47,6 +48,20 @@ const MenuDisplay: React.FC = () => {
     event.stopPropagation(); // Prevent toggling the menu group
     if (!ignoredBrands.includes(brandName)) {
       updateIgnoredBrands([...ignoredBrands, brandName]);
+    }
+  };
+  
+  const handleSkipToNext = (currentBuildingId: string) => {
+    const currentIndex = selectedBuildingIds.indexOf(currentBuildingId);
+    const nextIndex = currentIndex + 1;
+    
+    if (nextIndex < selectedBuildingIds.length) {
+      const nextBuildingId = selectedBuildingIds[nextIndex];
+      const nextBuildingElement = buildingRefs.current[nextBuildingId];
+      
+      if (nextBuildingElement) {
+        nextBuildingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   };
   
@@ -123,14 +138,29 @@ const MenuDisplay: React.FC = () => {
     <div className="menu-display">
       <h2>Available Menu Items</h2>
       <div className="buildings-list">
-        {selectedBuildingIds.map(buildingId => {
+        {selectedBuildingIds.map((buildingId, index) => {
           const building = buildingDetails[buildingId];
           if (!building) return null;
           
+          const isLastBuilding = index === selectedBuildingIds.length - 1;
+          
           return (
-            <div key={buildingId} className="building-section">
+            <div 
+              key={buildingId} 
+              className="building-section"
+              ref={(el) => { buildingRefs.current[buildingId] = el; }}
+            >
               <div className="building-header">
                 <h3>{building.name}</h3>
+                {!isLastBuilding && (
+                  <button 
+                    className="skip-button"
+                    onClick={() => handleSkipToNext(buildingId)}
+                    aria-label="Skip to next building"
+                  >
+                    «
+                  </button>
+                )}
               </div>
               <div className="locations-list">
                 {building.locations.map(location => location.brands.map(brand => {
