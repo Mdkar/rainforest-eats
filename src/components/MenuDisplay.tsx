@@ -11,7 +11,8 @@ const MenuDisplay: React.FC = () => {
     searchQuery,
     isLoading,
     ignoredBrands,
-    minPrice
+    minPrice,
+    updateIgnoredBrands
   } = useAppContext();
   
   const [noMenusFound, setNoMenusFound] = useState(false);
@@ -40,6 +41,13 @@ const MenuDisplay: React.FC = () => {
       }
       return newSet;
     });
+  };
+  
+  const handleIgnoreBrand = (brandName: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent toggling the menu group
+    if (!ignoredBrands.includes(brandName)) {
+      updateIgnoredBrands([...ignoredBrands, brandName]);
+    }
   };
   
   // Check if we have menus loaded after a certain time
@@ -151,7 +159,7 @@ const MenuDisplay: React.FC = () => {
                       <div className="location-header" onClick={() => toggleLocation(locationKey)}>
                         <div className="location-name">
                           <span className={`collapse-icon ${isLocationCollapsed ? 'collapsed' : ''}`}>▼</span>
-                          {location.name}
+                          {location.name}{brand.name ? ` - ${brand.name}` : ''}
                         </div>
                       </div>
                       
@@ -178,6 +186,14 @@ const MenuDisplay: React.FC = () => {
                                   <div className="menu-group-name" onClick={() => toggleMenuGroup(groupKey)}>
                                     <span className={`collapse-icon ${isGroupCollapsed ? 'collapsed' : ''}`}>▼</span>
                                     {group.label?.en}
+                                    <button 
+                                      className="ignore-brand-btn"
+                                      onClick={(e) => handleIgnoreBrand(group.label?.en || '', e)}
+                                      title="Ignore Brand"
+                                      aria-label="Ignore Brand"
+                                    >
+                                      ×
+                                    </button>
                                   </div>
                                   {!isGroupCollapsed && (
                                     <div className="menu-items">

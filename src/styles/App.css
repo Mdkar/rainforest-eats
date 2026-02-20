@@ -478,6 +478,30 @@ body {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   transition: background-color 0.2s;
+  position: relative;
+}
+
+.ignore-brand-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: all 0.2s;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.ignore-brand-btn:hover {
+  color: #ff4444;
+  background-color: rgba(255, 68, 68, 0.1);
+}
+
+.ignore-brand-btn:active {
+  transform: scale(0.95);
 }
 
 .menu-items {
@@ -493,6 +517,10 @@ body {
   font-size: 0.8rem;
   transition: transform 0.2s ease;
   color: var(--amazon-orange);
+}
+
+.location-name .collapse-icon {
+  color: var(--amazon-blue);
 }
 
 .collapse-icon.collapsed {

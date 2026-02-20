@@ -369,6 +369,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Update ignored brands
   const updateIgnoredBrands = (brands: string[]) => {
     setIgnoredBrands(brands);
+    storageService.saveIgnoredBrands(brands);
   };
 
   // Update minimum price filter

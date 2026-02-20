@@ -63,11 +63,8 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
     // Parse minimum price
     const minPriceValue = parseFloat(minPriceText) || 0;
     
-    // Save to storage and update context
-    storageService.saveIgnoredBrands(brandsList);
+    // Update context (which now handles localStorage save)
     updateIgnoredBrands(brandsList);
-    
-    storageService.saveMinPrice(minPriceValue);
     updateMinPrice(minPriceValue);
     
   updateSelectedCity(selectedCityValue);
