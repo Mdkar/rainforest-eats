@@ -16,25 +16,34 @@ const DEFAULT_PREFERENCES: UserPreferences = {
 };
 
 class StorageService {
+  // In-memory cache — all reads come from here after first load, preventing
+  // read-modify-write races when multiple saves happen in the same tick
+  private cache: UserPreferences | null = null;
+
   /**
-   * Get user preferences from local storage
+   * Get user preferences — returns the in-memory cache if available,
+   * otherwise reads from localStorage once and caches the result
    */
   getUserPreferences(): UserPreferences {
+    if (this.cache) return this.cache;
     try {
       const storedPrefs = localStorage.getItem(USER_PREFERENCES_KEY);
       if (storedPrefs) {
-        return JSON.parse(storedPrefs);
+        this.cache = JSON.parse(storedPrefs);
+        return this.cache!;
       }
     } catch (error) {
       console.error('Error reading user preferences from local storage:', error);
     }
-    return DEFAULT_PREFERENCES;
+    this.cache = { ...DEFAULT_PREFERENCES };
+    return this.cache;
   }
 
   /**
-   * Save user preferences to local storage
+   * Save user preferences to local storage and update the in-memory cache
    */
   saveUserPreferences(preferences: UserPreferences): void {
+    this.cache = preferences;
     try {
       localStorage.setItem(USER_PREFERENCES_KEY, JSON.stringify(preferences));
     } catch (error) {

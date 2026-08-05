@@ -21,6 +21,21 @@ const SERVICE_END_HOUR = 14; // 2:00 PM
 class ApiService {
   private token: string | null = null;
   private tokenExpiry: Date | null = null;
+  private tokenPromise: Promise<string> | null = null;
+  // In-memory debug flag — updated by setDebugMode, avoids a localStorage read on every log call
+  private _debugMode: boolean = storageService.getUserPreferences().debugMode ?? false;
+
+  // In-flight request caches — keyed by ID so concurrent callers for the same
+  // resource share one request instead of each firing their own
+  private buildingsPromise: Promise<BuildingGroup> | null = null;
+  private buildingDetailPromises: Map<string, Promise<BuildingDetail>> = new Map();
+  private menuPromises: Map<string, Promise<Menu>> = new Map();
+  // IDs that returned a non-retryable error (e.g. 404) — skip these permanently
+  private failedMenuIds: Set<string> = new Set();
+
+  setDebugMode(enabled: boolean): void {
+    this._debugMode = enabled;
+  }
 
   /**
    * Check if the current local time is outside normal service hours (11am–2pm)
@@ -32,8 +47,7 @@ class ApiService {
   }
 
   debugLog(...args: any[]) {
-    const prefs = storageService.getUserPreferences();
-    if (prefs.debugMode) {
+    if (this._debugMode) {
       console.log(...args);
     }
   }
@@ -50,33 +64,44 @@ class ApiService {
       return this.token;
     }
     
-    // If we have a valid token that hasn't expired, return it
+    // If we have a valid cached token, return it immediately
     if (this.token && this.tokenExpiry && new Date() < this.tokenExpiry) {
       return this.token;
     }
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/user/guest/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ realm: REALM }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get guest token: ${response.status}`);
-      }
-      
-      const data: GuestTokenResponse = await response.json();
-      this.token = data.token;
-      this.tokenExpiry = new Date(data.access.expires);
-      
-      return this.token;
-    } catch (error) {
-      console.error('Error getting guest token:', error);
-      throw error;
+
+    // If a token fetch is already in flight, reuse that promise so concurrent
+    // callers don't each fire their own request
+    if (this.tokenPromise) {
+      return this.tokenPromise;
     }
+
+    this.tokenPromise = fetch(`${API_BASE_URL}/user/guest/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ realm: REALM }),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to get guest token: ${response.status}`);
+        }
+        return response.json() as Promise<GuestTokenResponse>;
+      })
+      .then(data => {
+        this.token = data.token;
+        this.tokenExpiry = new Date(data.access.expires);
+        return this.token!;
+      })
+      .catch(error => {
+        console.error('Error getting guest token:', error);
+        throw error;
+      })
+      .finally(() => {
+        // Clear the in-flight promise so future calls after this one completes
+        // go through the normal cached-token path
+        this.tokenPromise = null;
+      });
+
+    return this.tokenPromise;
   }
   
   /**
@@ -86,25 +111,32 @@ class ApiService {
     if (USE_MOCK_DATA) {
       return mockDataService.getBuildingGroup();
     }
-    
-    const token = await this.getGuestToken();
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/location/multigroup/${MULTIGROUP_ID}`, {
-        headers: {
-          'Authorization': token,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get buildings: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error getting buildings:', error);
-      throw error;
+
+    // If a fetch is already in flight, reuse it
+    if (this.buildingsPromise) {
+      return this.buildingsPromise;
     }
+
+    const token = await this.getGuestToken();
+
+    this.buildingsPromise = fetch(`${API_BASE_URL}/location/multigroup/${MULTIGROUP_ID}`, {
+      headers: { 'Authorization': token },
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to get buildings: ${response.status}`);
+        }
+        return response.json() as Promise<BuildingGroup>;
+      })
+      .catch(error => {
+        console.error('Error getting buildings:', error);
+        throw error;
+      })
+      .finally(() => {
+        this.buildingsPromise = null;
+      });
+
+    return this.buildingsPromise;
   }
   
   /**
@@ -118,25 +150,33 @@ class ApiService {
       }
       return detail;
     }
-    
-    const token = await this.getGuestToken();
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/location/group/${buildingId}`, {
-        headers: {
-          'Authorization': token,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get building details: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error(`Error getting building detail for ${buildingId}:`, error);
-      throw error;
+
+    // If a fetch for this building is already in flight, reuse it
+    if (this.buildingDetailPromises.has(buildingId)) {
+      return this.buildingDetailPromises.get(buildingId)!;
     }
+
+    const token = await this.getGuestToken();
+
+    const promise = fetch(`${API_BASE_URL}/location/group/${buildingId}`, {
+      headers: { 'Authorization': token },
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to get building details: ${response.status}`);
+        }
+        return response.json() as Promise<BuildingDetail>;
+      })
+      .catch(error => {
+        console.error(`Error getting building detail for ${buildingId}:`, error);
+        throw error;
+      })
+      .finally(() => {
+        this.buildingDetailPromises.delete(buildingId);
+      });
+
+    this.buildingDetailPromises.set(buildingId, promise);
+    return promise;
   }
   
   /**
@@ -150,25 +190,42 @@ class ApiService {
       }
       return menu;
     }
-    
-    const token = await this.getGuestToken();
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/menu/${menuId}`, {
-        headers: {
-          'Authorization': token,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get menu: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error(`Error getting menu for ${menuId}:`, error);
-      throw error;
+
+    // Skip IDs that have already permanently failed (e.g. 404)
+    if (this.failedMenuIds.has(menuId)) {
+      throw new Error(`Menu ${menuId} previously returned a permanent error, skipping`);
     }
+
+    // If a fetch for this menu is already in flight, reuse it
+    if (this.menuPromises.has(menuId)) {
+      return this.menuPromises.get(menuId)!;
+    }
+
+    const token = await this.getGuestToken();
+
+    const promise = fetch(`${API_BASE_URL}/menu/${menuId}`, {
+      headers: { 'Authorization': token },
+    })
+      .then(response => {
+        if (!response.ok) {
+          // 404 and other client errors won't resolve on retry — mark permanently failed
+          if (response.status === 404 || (response.status >= 400 && response.status < 500)) {
+            this.failedMenuIds.add(menuId);
+          }
+          throw new Error(`Failed to get menu: ${response.status}`);
+        }
+        return response.json() as Promise<Menu>;
+      })
+      .catch(error => {
+        console.error(`Error getting menu for ${menuId}:`, error);
+        throw error;
+      })
+      .finally(() => {
+        this.menuPromises.delete(menuId);
+      });
+
+    this.menuPromises.set(menuId, promise);
+    return promise;
   }
 }
 

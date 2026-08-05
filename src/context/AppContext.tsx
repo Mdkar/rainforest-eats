@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode, useRef } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useRef, useCallback } from 'react';
 import { 
   Building, 
   BuildingDetail, 
@@ -58,6 +58,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const setDebugMode = (debug: boolean) => {
     setDebugModeState(debug);
     storageService.saveDebugMode(debug);
+    // Keep the in-memory flag on the API service in sync
+    apiService.setDebugMode(debug);
   };
 
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -85,46 +87,67 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Selected city state
   const [selectedCity, setSelectedCity] = useState<string>('');
 
-  // Fetch buildings data
-  const fetchBuildings = async () => {
-    setIsLoading(true);
-    setError(null);
+  // Fetch menus by ID — deduplicates IDs before fetching, skips already-cached menus
+  const fetchMenus = useCallback(async (menuIds: string[], cachedMenus: Record<string, Menu>) => {
+    // Deduplicate and skip already-cached menus
+    const uniqueIds = Array.from(new Set(menuIds)).filter(id => !cachedMenus[id]);
+    if (uniqueIds.length === 0) return;
+
+    const newMenus: Record<string, Menu> = {};
 
     try {
-      if (!selectedCity) {
-        return;
-      }
-
-      const buildingGroup = await apiService.getBuildings();
-      apiService.debugLog("Building group received:", buildingGroup);
-
-      // Filter for selected city buildings
-      const cityBuildings = buildingGroup.groups.filter(
-        building => building.address.city === selectedCity
+      await Promise.all(
+        uniqueIds.map(async (menuId) => {
+          try {
+            const menu = await apiService.getMenu(menuId);
+            newMenus[menuId] = menu;
+          } catch (err) {
+            console.error(`Failed to fetch menu ${menuId}:`, err);
+          }
+        })
       );
-      apiService.debugLog(`${selectedCity} buildings filtered:`, cityBuildings);
-
-      setBuildings(cityBuildings);
-
-      // Fetch details for selected buildings
-      await fetchSelectedBuildingDetails(selectedBuildingIds);
-
+      setMenus(prevMenus => ({ ...prevMenus, ...newMenus }));
     } catch (err) {
-      setError('Failed to load buildings');
-      console.error('Error fetching buildings:', err);
+      console.error("Error while fetching menus:", err);
+    }
+  }, []);
+
+  // Fetch details for selected buildings.
+  // currentIgnoredBrands is passed explicitly so this function always sees
+  // the latest value without needing to be recreated on every ignoredBrands change.
+  const fetchSelectedBuildingDetails = useCallback(async (
+    buildingIds: string[],
+    currentIgnoredBrands: string[],
+    currentBuildingDetails: Record<string, BuildingDetail>,
+    currentMenus: Record<string, Menu>,
+  ) => {
+    // Only fetch buildings we don't already have details for
+    const idsToFetch = buildingIds.filter(id => !currentBuildingDetails[id]);
+    if (idsToFetch.length === 0) {
+      // Building details are already cached — still need to resolve menus for
+      // the current ignoredBrands set in case it changed
+      const menusToFetch: string[] = [];
+      buildingIds.forEach(buildingId => {
+        const detail = currentBuildingDetails[buildingId];
+        if (!detail) return;
+        detail.locations?.forEach(location => {
+          location.brands.forEach(brand => {
+            if (!currentIgnoredBrands.includes(brand.name)) {
+              brand.menus?.forEach(menu => {
+                if (menu.id) menusToFetch.push(menu.id);
+              });
+            }
+          });
+        });
+      });
+      await fetchMenus(menusToFetch, currentMenus);
+      return;
     }
 
-    setIsLoading(false);
-  };
-
-  // Fetch details for selected buildings
-  const fetchSelectedBuildingDetails = async (buildingIds: string[]) => {
-    if (buildingIds.length === 0) return;
-
-    apiService.debugLog("Fetching details for selected buildings:", buildingIds);
+    apiService.debugLog("Fetching details for selected buildings:", idsToFetch);
 
     try {
-      const detailsPromises = buildingIds.map(async (buildingId) => {
+      const detailsPromises = idsToFetch.map(async (buildingId) => {
         try {
           return await apiService.getBuildingDetail(buildingId);
         } catch (err) {
@@ -138,16 +161,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const newBuildingDetails: Record<string, BuildingDetail> = {};
       const menusToFetch: string[] = [];
 
-      // Process building details and collect menu IDs
       detailsArray.forEach(detail => {
         if (!detail) return;
 
         newBuildingDetails[detail.id] = detail;
 
-        // Collect menu IDs from locations
         detail.locations?.forEach(location => {
           location.brands.forEach(brand => {
-            if (!ignoredBrands.includes(brand.name)) {
+            if (!currentIgnoredBrands.includes(brand.name)) {
               apiService.debugLog(`Processing brand "${brand.name}" for building "${detail.name}"`);
 
               if (!brand.menus || brand.menus.length === 0) {
@@ -167,43 +188,72 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       apiService.debugLog("Menu IDs to fetch:", menusToFetch);
 
-      // Update building details
       setBuildingDetails(prev => {
         apiService.debugLog("Setting building details:", newBuildingDetails);
         return { ...prev, ...newBuildingDetails };
       });
 
-      // Fetch menus
-      await fetchMenus(menusToFetch);
+      await fetchMenus(menusToFetch, { ...currentMenus });
 
     } catch (err) {
       setError('Failed to load building details');
       console.error('Error fetching building details:', err);
     }
-  };
+  }, [fetchMenus]);
 
-  // Fetch menus by ID 
-  const fetchMenus = async (menuIds: string[]) => {
-    if (menuIds.length === 0) return;
+  // Fetch buildings data
+  const fetchBuildings = useCallback(async (
+    city: string,
+    buildingIds: string[],
+    currentIgnoredBrands: string[],
+    currentBuildingDetails: Record<string, BuildingDetail>,
+    currentMenus: Record<string, Menu>,
+  ) => {
+    if (!city) return;
 
-    const newMenus: Record<string, Menu> = {};
+    setIsLoading(true);
+    setError(null);
 
     try {
-      await Promise.all(
-        menuIds.map(async (menuId) => {
-          try {
-            const menu = await apiService.getMenu(menuId);
-            newMenus[menuId] = menu;
-          } catch (err) {
-            console.error(`Failed to fetch menu ${menuId}:`, err);
-          }
-        })
+      const buildingGroup = await apiService.getBuildings();
+      apiService.debugLog("Building group received:", buildingGroup);
+
+      const cityBuildings = buildingGroup.groups.filter(
+        building => building.address.city === city
       );
-      setMenus(prevMenus => ({ ...prevMenus, ...newMenus }));
+      apiService.debugLog(`${city} buildings filtered:`, cityBuildings);
+
+      // Validate stored IDs against known buildings to avoid sending display
+      // names or stale IDs to the API
+      const validIds = new Set(cityBuildings.map(b => b.id));
+      const validBuildingIds = buildingIds.filter(id => {
+        const isValid = validIds.has(id);
+        if (!isValid) console.warn(`Dropping invalid building ID from selection: "${id}"`);
+        return isValid;
+      });
+
+      setBuildings(cityBuildings);
+
+      // If stored IDs contained invalid entries, persist the cleaned list
+      if (validBuildingIds.length !== buildingIds.length) {
+        setSelectedBuildingIds(validBuildingIds);
+        storageService.saveSelectedBuildings(validBuildingIds);
+      }
+
+      await fetchSelectedBuildingDetails(
+        validBuildingIds,
+        currentIgnoredBrands,
+        currentBuildingDetails,
+        currentMenus,
+      );
+
     } catch (err) {
-      console.error("Error while fetching menus:", err);
+      setError('Failed to load buildings');
+      console.error('Error fetching buildings:', err);
     }
-  };
+
+    setIsLoading(false);
+  }, [fetchSelectedBuildingDetails]);
 
   // Toggle a building selection
   const toggleBuildingSelection = (buildingId: string) => {
@@ -222,35 +272,61 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Create a reference to track when data is loaded
   const hasLoadedData = useRef(false);
 
-  // Load user preferences on initial mount and clean up stale cache keys
+  // Single init effect — loads all preferences at once, then triggers one fetch.
+  // Using a ref to ensure this only runs once even in React strict mode double-invoke.
+  const didInit = useRef(false);
   useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
+
     apiService.debugLog("Initial load of user preferences");
 
     const userPrefs = storageService.getUserPreferences();
-    setSelectedBuildingIds(userPrefs.selectedBuildings);
-    setIgnoredBrands(userPrefs.ignoredBrands || []);
-    setMinPrice(userPrefs.minPrice || 0);
-    setSelectedCity(userPrefs.selectedCity || 'Seattle');
+    const initCity = userPrefs.selectedCity || 'Seattle';
+    const initBuildings = userPrefs.selectedBuildings || [];
+    const initIgnoredBrands = userPrefs.ignoredBrands || [];
+    const initMinPrice = userPrefs.minPrice || 0;
 
-    // Check service hours once on mount
+    // Set all state synchronously before triggering any fetches
+    setSelectedBuildingIds(initBuildings);
+    setIgnoredBrands(initIgnoredBrands);
+    setMinPrice(initMinPrice);
+    setSelectedCity(initCity);
     setIsOutsideServiceHours(apiService.isOutsideServiceHours());
+
+    // Single fetch using the values we just read — avoids waiting for React
+    // to flush state and re-render before fetching
+    fetchBuildings(initCity, initBuildings, initIgnoredBrands, {}, {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // When the user changes which buildings are selected (after init), fetch any
+  // newly selected buildings. Already-cached buildings are skipped inside
+  // fetchSelectedBuildingDetails.
+  const isFirstSelectedBuildingsRender = useRef(true);
   useEffect(() => {
-    fetchBuildings();
-  }, [selectedCity]);
-
-  useEffect(() => {
+    if (isFirstSelectedBuildingsRender.current) {
+      isFirstSelectedBuildingsRender.current = false;
+      return;
+    }
     apiService.debugLog("Selected building IDs changed:", selectedBuildingIds);
-    const newlySelectedIds = selectedBuildingIds.filter(
-      id => !Object.keys(buildingDetails).includes(id)
-    );
-    fetchSelectedBuildingDetails(newlySelectedIds);
+    fetchSelectedBuildingDetails(selectedBuildingIds, ignoredBrands, buildingDetails, menus);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBuildingIds]);
 
+  // When ignoredBrands changes, we only need to re-resolve which menus to show
+  // from already-cached building details — no network calls for buildings needed.
+  // fetchSelectedBuildingDetails handles this: if all details are cached it goes
+  // straight to the menu resolution path.
+  const isFirstIgnoredBrandsRender = useRef(true);
   useEffect(() => {
+    if (isFirstIgnoredBrandsRender.current) {
+      isFirstIgnoredBrandsRender.current = false;
+      return;
+    }
     apiService.debugLog("Ignored brands changed:", ignoredBrands);
-    fetchSelectedBuildingDetails(selectedBuildingIds);
+    fetchSelectedBuildingDetails(selectedBuildingIds, ignoredBrands, buildingDetails, menus);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ignoredBrands]);
 
   // Effect to check data loading state
@@ -358,8 +434,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setSelectedBuildingIds([]);
       setSearchResults([]);
       storageService.saveSelectedBuildings([]);
+      // Fetch for new city with clean state — no carried-over buildings/menus
+      fetchBuildings(city, [], ignoredBrands, {}, {});
     }
   };
+
+  // Public wrapper so external callers (e.g. pull-to-refresh) don't need to pass state
+  const fetchBuildingsPublic = useCallback(() => {
+    return fetchBuildings(selectedCity, selectedBuildingIds, ignoredBrands, buildingDetails, menus);
+  }, [fetchBuildings, selectedCity, selectedBuildingIds, ignoredBrands, buildingDetails, menus]);
 
   const value: AppContextType = {
     buildings,
@@ -377,7 +460,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSelectedBuildingIds,
     toggleBuildingSelection,
     searchMenuItems,
-    fetchBuildings,
+    fetchBuildings: fetchBuildingsPublic,
     updateIgnoredBrands,
     updateMinPrice,
     updateSelectedCity,
