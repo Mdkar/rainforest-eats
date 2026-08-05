@@ -7,6 +7,7 @@ import Footer from './Footer';
 const About: React.FC = () => {
   return (
     <div className="app">
+      <title>Rainforest Eats | About</title>
       <Header onSettingsClick={() => {}} />
       
       <main className="container about-page">

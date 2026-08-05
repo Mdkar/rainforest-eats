@@ -25,6 +25,12 @@ const CityPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cityName]);
 
+  useEffect(() => {
+    if (cityName) {
+      document.title = `Rainforest Eats | ${cityName}`;
+    }
+  }, [cityName]);
+
   // Unknown slug → send back to root (which will redirect to a valid city)
   if (!cityName) {
     return <Navigate to="/" replace />;
