@@ -66,6 +66,15 @@ body {
   margin-right: 0.5rem;
 }
 
+.logo-city {
+  font-family: 'Segoe Script', 'Brush Script MT', 'Lucida Handwriting', cursive;
+  font-size: 1.75rem;
+  font-weight: normal;
+  color: var(--amazon-orange);
+  margin-left: 0.6rem;
+  opacity: 0.9;
+}
+
 .header-buttons {
   display: flex;
   align-items: center;

@@ -1,32 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import storageService from '../services/storage';
-
-// City options with building counts
-const CITY_OPTIONS = [
-  { name: 'Seattle', count: 29 },
-  { name: 'Bellevue', count: 7 },
-  { name: 'New York', count: 6 },
-  { name: 'Redmond', count: 6 },
-  { name: 'Sunnyvale', count: 6 },
-  { name: 'Austin', count: 4 },
-  { name: 'Santa Clara', count: 3 },
-  { name: 'Arlington', count: 3 },
-  { name: 'Vancouver', count: 3 },
-  { name: 'Boston', count: 2 },
-  { name: 'Herndon', count: 2 },
-  { name: 'Culver City', count: 2 },
-  { name: 'Nashville', count: 1 },
-  { name: 'Annapolis Junction', count: 1 },
-  { name: 'Denver', count: 1 },
-  { name: 'Santa Monica', count: 1 },
-  { name: 'San Diego', count: 1 },
-  { name: 'Kirkland', count: 1 },
-  { name: 'Palo Alto', count: 1 },
-  { name: 'Irvine', count: 1 },
-  { name: 'Toronto', count: 1 },
-  { name: 'Richmond Hill', count: 0 },
-];
+import { CITIES, CITY_NAME_TO_SLUG, DEFAULT_CITY_SLUG } from '../utils/cityRoutes';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -35,6 +11,7 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
   const { updateIgnoredBrands, updateMinPrice, updateSelectedCity, debugMode, setDebugMode } = useAppContext();
+  const navigate = useNavigate();
   const [ignoredBrandsText, setIgnoredBrandsText] = useState('');
   const [minPriceText, setMinPriceText] = useState('');
   const [selectedCityValue, setSelectedCityValue] = useState('');
@@ -63,13 +40,16 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
     // Parse minimum price
     const minPriceValue = parseFloat(minPriceText) || 0;
     
-    // Update context (which now handles localStorage save)
     updateIgnoredBrands(brandsList);
     updateMinPrice(minPriceValue);
-    
-  updateSelectedCity(selectedCityValue);
-  setDebugMode(debugModeValue);
-  onClose();
+    updateSelectedCity(selectedCityValue);
+    setDebugMode(debugModeValue);
+
+    // Keep the URL in sync with the newly selected city
+    const slug = CITY_NAME_TO_SLUG[selectedCityValue] ?? DEFAULT_CITY_SLUG;
+    navigate(`/${slug}`, { replace: true });
+
+    onClose();
   };
 
   const handleReset = () => {
@@ -103,7 +83,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
               onChange={(e) => setSelectedCityValue(e.target.value)}
               className="city-select"
             >
-              {CITY_OPTIONS.map(city => (
+              {CITIES.map(city => (
                 <option key={city.name} value={city.name}>
                   {city.name} ({city.count})
                 </option>

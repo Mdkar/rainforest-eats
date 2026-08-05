@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAppContext } from '../context/AppContext';
 
 interface HeaderProps {
   onSettingsClick: () => void;
@@ -9,6 +10,7 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAboutPage = location.pathname === '/about';
+  const { selectedCity } = useAppContext();
 
   return (
     <header className="header">
@@ -16,6 +18,9 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick }) => {
         <div className="logo">
           <span className="logo-icon">🍌</span>
           Rainforest Eats
+          {selectedCity && (
+            <span className="logo-city">{selectedCity}</span>
+          )}
         </div>
         <div className="header-buttons">
           {!isAboutPage && (

@@ -84,8 +84,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Minimum price filter state
   const [minPrice, setMinPrice] = useState<number>(0);
 
-  // Selected city state
-  const [selectedCity, setSelectedCity] = useState<string>('');
+  // Selected city state — pre-seeded from localStorage so CityPage's useEffect
+  // doesn't see '' and mistakenly treat the stored city as a "change"
+  const [selectedCity, setSelectedCity] = useState<string>(() => {
+    return storageService.getUserPreferences().selectedCity || 'Seattle';
+  });
 
   // Fetch menus by ID — deduplicates IDs before fetching, skips already-cached menus
   const fetchMenus = useCallback(async (menuIds: string[], cachedMenus: Record<string, Menu>) => {

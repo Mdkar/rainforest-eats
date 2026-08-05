@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, CircleMarker, Tooltip, useMap } from 'react-leaflet';
+import { Link } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -7,6 +8,7 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import { useAppContext } from '../context/AppContext';
 import { useNotifications } from '../context/NotificationContext';
 import { calculateDistance, calculateMapCenter } from '../utils/mapUtils';
+import { CITIES, CityInfo } from '../utils/cityRoutes';
 import apiService from '../services/api';
 
 // Fix Leaflet default marker icon issue with webpack
@@ -151,34 +153,62 @@ const MapView: React.FC = () => {
           lng: position.coords.longitude
         };
 
-        // Find the nearest building and its distance
-        let nearestDistance = Infinity;
+        // Find nearest city using hardcoded coordinates — no API call needed
+        let nearestCityDistance = Infinity;
+        let nearestCity: CityInfo | null = null;
+        CITIES.forEach(city => {
+          const distance = calculateDistance(
+            { latitude: userLoc.lat, longitude: userLoc.lng },
+            { latitude: city.lat, longitude: city.lng }
+          );
+          if (distance < nearestCityDistance) {
+            nearestCityDistance = distance;
+            nearestCity = city;
+          }
+        });
+
+        // For map recentering decisions, use only the current city's buildings
+        let nearestCurrentCityDistance = Infinity;
         validBuildings.forEach(building => {
           const distance = calculateDistance(
             { latitude: userLoc.lat, longitude: userLoc.lng },
             building.address.coordinates
           );
-          if (distance < nearestDistance) {
-            nearestDistance = distance;
+          if (distance < nearestCurrentCityDistance) {
+            nearestCurrentCityDistance = distance;
           }
         });
 
-        const isNearby = nearestDistance <= MAX_DISTANCE_KM;
-        const shouldRecenter = nearestDistance <= RECENTER_DISTANCE_KM;
+        const isNearby = nearestCurrentCityDistance <= MAX_DISTANCE_KM;
+        const shouldRecenter = nearestCurrentCityDistance <= RECENTER_DISTANCE_KM;
 
         // If user is too far away, show notification and don't recenter
-        if (!shouldRecenter && nearestDistance !== Infinity) {
+        if (!shouldRecenter && nearestCurrentCityDistance !== Infinity) {
           // Only show notification once
           if (!hasShownLocationNotification.current) {
             hasShownLocationNotification.current = true;
+
+            // Capture in a const so TypeScript's control-flow narrowing works in JSX
+            const nearest = nearestCity as CityInfo | null;
+
             addNotification({
               title: '📍 Location Notice',
               content: (
                 <div>
                   <p>You appear to be more than {RECENTER_DISTANCE_MILES} miles from the nearest location.</p>
-                  <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                    You can change your city in the Settings menu to view buildings in other areas.
-                  </p>
+                  {nearest ? (
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                      The nearest city is{' '}
+                      <Link to={`/${nearest.slug}`} style={{ color: 'inherit', fontWeight: 600 }}>
+                        {nearest.name}
+                      </Link>
+                      .
+                    </p>
+                  ) : (
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                      You can change your city in the Settings menu to view buildings in other areas.
+                    </p>
+                  )}
                 </div>
               ),
               duration: 8000,
