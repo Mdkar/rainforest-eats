@@ -1,5 +1,13 @@
 [  
   {
+    "date": "2026-08-05",
+    "changes": [
+      "City URLs: navigate directly to /seattle, /new-york, /boston, etc. — the URL now reflects your selected city",
+      "Location notice now suggests a link to the nearest city when you're far from the current one",
+      "Buggy menu caching removed. Fixed some race conditions and unnecesary API calls, site should load smoother."
+    ]
+  },
+  {
     "date": "2026-02-20",
     "changes": [
       "Made building headers sticky when scrolling",
