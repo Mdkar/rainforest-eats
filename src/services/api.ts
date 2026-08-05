@@ -3,7 +3,6 @@ import {
   BuildingGroup, 
   BuildingDetail,
   Menu,
-  CachedMenus,
 } from '../types';
 import mockDataService from './mockData';
 import storageService from './storage';
@@ -15,29 +14,21 @@ const API_BASE_URL = 'https://api.compassdigital.org';
 const REALM = 'Kq8m4B8GNRCgjlRL9A3rsYj0YBNGP3SLOKgg';
 const MULTIGROUP_ID = 'Ym7By6oy1dTOBE5P880jTamr9022GqCD7BB2y1vOIlgk1B16Y7hzOGjMXNMoh1oQRojae9T8JqBXJ8llt9d';
 
-// Hours during which the API is active (11:00 AM - 2:00 PM), sometimes midnight?
-const API_ACTIVE_START_HOUR = 0;
-const API_ACTIVE_END_HOUR = 14; // 2:00 PM
+// Hours during which restaurants are typically open (11:00 AM - 2:00 PM)
+const SERVICE_START_HOUR = 11;
+const SERVICE_END_HOUR = 14; // 2:00 PM
 
 class ApiService {
   private token: string | null = null;
   private tokenExpiry: Date | null = null;
-  
+
   /**
-   * Check if the API is likely to be active based on current time
+   * Check if the current local time is outside normal service hours (11am–2pm)
    */
-  isApiActive(): boolean {
-    // Debug mode always returns true
-    const prefs = storageService.getUserPreferences();
-    if (prefs.debugMode) {
-      return true;
-    }
-    if (USE_MOCK_DATA) {
-      return true;
-    }
+  isOutsideServiceHours(): boolean {
     const now = new Date();
     const hour = now.getHours();
-    return hour >= API_ACTIVE_START_HOUR && hour < API_ACTIVE_END_HOUR;
+    return hour < SERVICE_START_HOUR || hour >= SERVICE_END_HOUR;
   }
 
   debugLog(...args: any[]) {
@@ -178,34 +169,6 @@ class ApiService {
       console.error(`Error getting menu for ${menuId}:`, error);
       throw error;
     }
-  }
-  
-  /**
-   * Get a menu, either from the API or from cache if the API is not active
-   */
-  async getMenuWithFallback(menuId: string, cachedMenus: CachedMenus): Promise<{ menu: Menu; isCached: boolean; cacheDate?: Date }> {
-    // Try to get from API if it's active time
-    if (this.isApiActive()) {
-      try {
-        const menu = await this.getMenu(menuId);
-        return { menu, isCached: false };
-      } catch (error) {
-        console.warn(`API call failed, falling back to cache for menu ${menuId}`);
-      }
-    }
-    
-    // Fall back to cached menu if available
-    const cachedMenu = cachedMenus[menuId];
-    if (cachedMenu) {
-      return { 
-        menu: cachedMenu.menu, 
-        isCached: true, 
-        cacheDate: new Date(cachedMenu.timestamp)
-      };
-    }
-    
-    // If no cache available and API failed, propagate the failure
-    throw new Error(`Menu ${menuId} is not available from API and no cache exists`);
   }
 }
 

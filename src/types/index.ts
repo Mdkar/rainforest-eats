@@ -125,13 +125,3 @@ export interface UserPreferences {
   selectedCity: string;
   debugMode?: boolean;
 }
-
-// Cache Types
-export interface CachedMenu {
-  menu: Menu;
-  timestamp: number;
-}
-
-export interface CachedMenus {
-  [menuId: string]: CachedMenu;
-}

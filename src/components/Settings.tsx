@@ -150,7 +150,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
             <label htmlFor="debug-mode">
               <strong>Debug Mode</strong>
               <span className="setting-description">
-                Enable debug mode to show extra console logs and force API active status.
+                Enable debug mode to show extra console logs.
               </span>
             </label>
             <input

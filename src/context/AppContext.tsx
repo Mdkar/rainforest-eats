@@ -4,7 +4,6 @@ import {
   BuildingDetail, 
   Menu,
   MenuItem,
-  CachedMenus
 } from '../types';
 import apiService from '../services/api';
 import storageService from '../services/storage';
@@ -26,7 +25,6 @@ interface AppContextType {
   selectedBuildingIds: string[];
   buildingDetails: Record<string, BuildingDetail>;
   menus: Record<string, Menu>;
-  cachedMenus: CachedMenus;
   isLoading: boolean;
   error: string | null;
   searchResults: SearchResult[];
@@ -35,9 +33,8 @@ interface AppContextType {
   minPrice: number;
   selectedCity: string;
 
-  // Flag to indicate if we're showing cached data
-  isShowingCachedData: boolean;
-  cacheDate: Date | null;
+  // Whether to show the "restaurants may be closed" banner
+  isOutsideServiceHours: boolean;
   
   // Actions
   setSelectedBuildingIds: (ids: string[]) => void;
@@ -52,41 +49,39 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // State for buildings and user selection
-    // Debug mode state
-    const [debugMode, setDebugModeState] = useState<boolean>(() => {
-      const prefs = storageService.getUserPreferences();
-      return prefs.debugMode ?? false;
-    });
+  // Debug mode state
+  const [debugMode, setDebugModeState] = useState<boolean>(() => {
+    const prefs = storageService.getUserPreferences();
+    return prefs.debugMode ?? false;
+  });
 
-    const setDebugMode = (debug: boolean) => {
-      setDebugModeState(debug);
-      storageService.saveDebugMode(debug);
-    };
+  const setDebugMode = (debug: boolean) => {
+    setDebugModeState(debug);
+    storageService.saveDebugMode(debug);
+  };
+
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [selectedBuildingIds, setSelectedBuildingIds] = useState<string[]>([]);
   const [buildingDetails, setBuildingDetails] = useState<Record<string, BuildingDetail>>({});
   const [menus, setMenus] = useState<Record<string, Menu>>({});
-  const [cachedMenus, setCachedMenus] = useState<CachedMenus>({});
-  
+
   // Loading and error states
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  
-  // Cache information
-  const [isShowingCachedData, setIsShowingCachedData] = useState(false);
-  const [cacheDate, setCacheDate] = useState<Date | null>(null);
-  
+
+  // Whether the current time is outside service hours (11am–2pm)
+  const [isOutsideServiceHours, setIsOutsideServiceHours] = useState(false);
+
   // Ignored brands state
   const [ignoredBrands, setIgnoredBrands] = useState<string[]>([]);
-  
+
   // Minimum price filter state
   const [minPrice, setMinPrice] = useState<number>(0);
-  
+
   // Selected city state
   const [selectedCity, setSelectedCity] = useState<string>('');
 
@@ -102,15 +97,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       const buildingGroup = await apiService.getBuildings();
       apiService.debugLog("Building group received:", buildingGroup);
-      
+
       // Filter for selected city buildings
       const cityBuildings = buildingGroup.groups.filter(
         building => building.address.city === selectedCity
       );
       apiService.debugLog(`${selectedCity} buildings filtered:`, cityBuildings);
-      
+
       setBuildings(cityBuildings);
-      
+
       // Fetch details for selected buildings
       await fetchSelectedBuildingDetails(selectedBuildingIds);
 
@@ -123,7 +118,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Fetch details for selected buildings
-  const fetchSelectedBuildingDetails = async (buildingIds : string[]) => {
+  const fetchSelectedBuildingDetails = async (buildingIds: string[]) => {
     if (buildingIds.length === 0) return;
 
     apiService.debugLog("Fetching details for selected buildings:", buildingIds);
@@ -139,22 +134,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       });
 
       const detailsArray = await Promise.all(detailsPromises);
-      
+
       const newBuildingDetails: Record<string, BuildingDetail> = {};
       const menusToFetch: string[] = [];
 
       // Process building details and collect menu IDs
       detailsArray.forEach(detail => {
         if (!detail) return;
-        
+
         newBuildingDetails[detail.id] = detail;
-        
+
         // Collect menu IDs from locations
         detail.locations?.forEach(location => {
           location.brands.forEach(brand => {
-            if (!ignoredBrands.includes(brand.name)){
+            if (!ignoredBrands.includes(brand.name)) {
               apiService.debugLog(`Processing brand "${brand.name}" for building "${detail.name}"`);
-            
+
               if (!brand.menus || brand.menus.length === 0) {
                 apiService.debugLog(`No menus found for location ${location.name}`);
               } else {
@@ -165,9 +160,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                   }
                 });
               }
-
-          }});
-          
+            }
+          });
         });
       });
 
@@ -178,51 +172,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         apiService.debugLog("Setting building details:", newBuildingDetails);
         return { ...prev, ...newBuildingDetails };
       });
-      
+
       // Fetch menus
       await fetchMenus(menusToFetch);
-      
+
     } catch (err) {
       setError('Failed to load building details');
       console.error('Error fetching building details:', err);
     }
   };
 
-  // Fetch menus by ID
+  // Fetch menus by ID 
   const fetchMenus = async (menuIds: string[]) => {
     if (menuIds.length === 0) return;
 
     const newMenus: Record<string, Menu> = {};
-    let usingCachedData = false;
-    let latestCacheDate: Date | null = null;
 
     try {
       await Promise.all(
         menuIds.map(async (menuId) => {
           try {
-            const result = await apiService.getMenuWithFallback(menuId, cachedMenus);
-            newMenus[menuId] = result.menu;
-            
-            // If we got fresh data, cache it
-            if (!result.isCached) {
-              storageService.cacheMenu(menuId, result.menu);
-            } else {
-              usingCachedData = true;
-              if (result.cacheDate) {
-                if (!latestCacheDate || result.cacheDate > latestCacheDate) {
-                  latestCacheDate = result.cacheDate;
-                }
-              }
-            }
+            const menu = await apiService.getMenu(menuId);
+            newMenus[menuId] = menu;
           } catch (err) {
             console.error(`Failed to fetch menu ${menuId}:`, err);
           }
         })
       );
       setMenus(prevMenus => ({ ...prevMenus, ...newMenus }));
-      setIsShowingCachedData(usingCachedData);
-      setCacheDate(latestCacheDate);
-      
     } catch (err) {
       console.error("Error while fetching menus:", err);
     }
@@ -231,13 +208,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Toggle a building selection
   const toggleBuildingSelection = (buildingId: string) => {
     let newSelection: string[];
-    
+
     if (selectedBuildingIds.includes(buildingId)) {
       newSelection = selectedBuildingIds.filter(id => id !== buildingId);
     } else {
       newSelection = [...selectedBuildingIds, buildingId];
     }
-    
+
     setSelectedBuildingIds(newSelection);
     storageService.saveSelectedBuildings(newSelection);
   };
@@ -245,23 +222,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Create a reference to track when data is loaded
   const hasLoadedData = useRef(false);
 
-    // Load user preferences and cached menus on initial mount
+  // Load user preferences on initial mount and clean up stale cache keys
   useEffect(() => {
-    apiService.debugLog("Initial load of user preferences and cached menus");
-    
+    apiService.debugLog("Initial load of user preferences");
+
     const userPrefs = storageService.getUserPreferences();
     setSelectedBuildingIds(userPrefs.selectedBuildings);
     setIgnoredBrands(userPrefs.ignoredBrands || []);
     setMinPrice(userPrefs.minPrice || 0);
     setSelectedCity(userPrefs.selectedCity || 'Seattle');
-    
-    const storedCachedMenus = storageService.getCachedMenus();
-    setCachedMenus(storedCachedMenus);
+
+    // Check service hours once on mount
+    setIsOutsideServiceHours(apiService.isOutsideServiceHours());
   }, []);
 
   useEffect(() => {
     fetchBuildings();
-  }, [selectedCity])
+  }, [selectedCity]);
 
   useEffect(() => {
     apiService.debugLog("Selected building IDs changed:", selectedBuildingIds);
@@ -279,7 +256,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Effect to check data loading state
   useEffect(() => {
     apiService.debugLog("Building details or menus changed:", buildingDetails, menus);
-    // If building details and menus exist, mark data as loaded
     if (Object.keys(buildingDetails).length > 0 && Object.keys(menus).length > 0) {
       hasLoadedData.current = true;
     }
@@ -296,11 +272,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setSearchQuery(query);
     storageService.saveLastSearch(query);
-    
+
     const normalizedQuery = query.toLowerCase().trim();
     const results: SearchResult[] = [];
 
-    // Log debugging info to help identify the issue
     apiService.debugLog('Searching for:', normalizedQuery);
     apiService.debugLog('Selected building IDs:', selectedBuildingIds);
     apiService.debugLog('Building details:', buildingDetails);
@@ -315,34 +290,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       const buildingName = buildingDetail.name;
-      
-      // Search through all locations in the building
+
       buildingDetail.locations.forEach(location => location.brands.forEach(brand => {
-        // Skip ignored brands in search results
         if (ignoredBrands.includes(brand.name)) return;
-        
+
         const locationName = brand.name;
-        
-        // Search through all menus in the location
+
         brand.menus?.forEach(menuRef => {
           const menu = menus[menuRef.id];
           if (!menu) {
             apiService.debugLog(`No menu found for ID ${menuRef.id}`);
             return;
           }
-          
+
           const menuName = menu.label?.en;
-          
-          // Search through all menu groups
+
           menu.groups?.forEach(group => {
-            // Search through all items in the group
             group.items?.forEach(item => {
               const itemName = item.label?.en.toLowerCase();
               const itemDescription = item.description?.en?.toLowerCase() || '';
-              
-              // Check if the item matches the search query and price filter
+
               if (
-                (itemName.includes(normalizedQuery) || 
+                (itemName.includes(normalizedQuery) ||
                 itemDescription.includes(normalizedQuery)) &&
                 (minPrice === 0 || item.price.amount >= minPrice)
               ) {
@@ -380,7 +349,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Update selected city
   const updateSelectedCity = (city: string) => {
-    // Clear existing data and refresh with new city only if city changes
     if (city !== selectedCity) {
       setSelectedCity(city);
       storageService.saveSelectedCity(city);
@@ -398,7 +366,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     selectedBuildingIds,
     buildingDetails,
     menus,
-    cachedMenus,
     isLoading,
     error,
     searchResults,
@@ -406,8 +373,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     ignoredBrands,
     minPrice,
     selectedCity,
-    isShowingCachedData,
-    cacheDate,
+    isOutsideServiceHours,
     setSelectedBuildingIds,
     toggleBuildingSelection,
     searchMenuItems,

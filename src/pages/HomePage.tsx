@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import Header from '../components/Header';
-import CacheIndicator from '../components/CacheIndicator';
 import BuildingSelection from '../components/BuildingSelection';
 import SearchBar from '../components/SearchBar';
 import SearchResults from '../components/SearchResults';
@@ -9,14 +8,12 @@ import MenuDisplay from '../components/MenuDisplay';
 import Footer from '../components/Footer';
 import Settings from '../components/Settings';
 import ChangelogNotification from '../components/ChangelogNotification';
-import NotificationDemo from '../components/NotificationDemo';
 
 const HomePage: React.FC = () => {
-  const { 
-    isLoading, 
-    error, 
-    isShowingCachedData, 
-    cacheDate,
+  const {
+    isLoading,
+    error,
+    isOutsideServiceHours,
     fetchBuildings
   } = useAppContext();
 
@@ -33,19 +30,21 @@ const HomePage: React.FC = () => {
   return (
     <div className="app">
       <Header onSettingsClick={handleSettingsClick} />
-      
-      {isShowingCachedData && cacheDate && (
-        <CacheIndicator cacheDate={cacheDate} />
+
+      {isOutsideServiceHours && (
+        <div className="cache-indicator">
+          Restaurants may be closed
+        </div>
       )}
-      
+
       <ChangelogNotification />
       {/* <NotificationDemo /> */}
-      
+
       <main className="container">
         {error && (
           <div className="error">
             {error}
-            <button 
+            <button
               onClick={fetchBuildings}
               style={{ marginLeft: '1rem' }}
             >
@@ -53,7 +52,7 @@ const HomePage: React.FC = () => {
             </button>
           </div>
         )}
-        
+
         {isLoading ? (
           <div className="loading">Loading menu data...</div>
         ) : (
@@ -65,11 +64,11 @@ const HomePage: React.FC = () => {
           </>
         )}
       </main>
-      
+
       <Footer />
-      
-      <Settings 
-        isOpen={isSettingsOpen} 
+
+      <Settings
+        isOpen={isSettingsOpen}
         onClose={handleSettingsClose}
       />
     </div>
